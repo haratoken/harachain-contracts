@@ -147,24 +147,6 @@ contract('DataStore', accounts => {
           web3.utils.asciiToHex("2018-08-15T10:48:56.485Z"), 
           {from:notOwner}));
     });
-
-    // it('can add buyer details by owner', async function(){
-    //   var receipt = await datastore.setDetails(notOwner, "buy", web3.utils.asciiToHex("all"), {from:dataOwner});
-    //   var notOwnerBut = await datastore.getDetails(notOwner, "buy");
-    //   assert.strictEqual(web3.utils.hexToAscii(notOwnerBut), "all");
-
-    //   var log = receipt.logs[0];
-    //   assert.strictEqual(log.event, "AddDetailsLog");
-    //   assert.strictEqual(log.args.dataType, "buy");
-    //   assert.strictEqual(web3.utils.hexToAscii(log.args.dataDetails), "all");
-    // });
-
-    // it('can not add buyer by not owner', async function(){
-    //   await expectRevert(
-    //     datastore.setDetails(notOwner, "buy", 
-    //       web3.utils.asciiToHex("all"), 
-    //       {from:notOwner}));
-    // });
   });
 
   // describe('buy data', async function(){
