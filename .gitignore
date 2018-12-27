@@ -4,3 +4,4 @@ reports/*
 coverage/*
 
 docker-compose-local.yml
+coverage.json
