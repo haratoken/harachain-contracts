@@ -180,6 +180,19 @@ contract('DataStore', accounts => {
   //   });
   // });
 
+  describe('purchased data permission', async function () {   
+    it('true if owner', async function(){
+      var isAllowed = await datastore.getPurchaseStatus(dataOwner, initPriceId, { from: dataOwner });
+      assert.strictEqual(isAllowed, true);
+    });
+
+    it('true if buyer already purchased', async function(){
+    });
+
+    it('false if buyer not bought yet', async function(){
+    });
+  });
+
   describe('contract is Withdrawable', async function () {
     before(async function () {
       await hart.methods.transfer(datastore.address, web3.utils.toWei("10")).send({from: owner});

@@ -237,13 +237,18 @@ contract DataStore is BasicMarketItem {
     function getPercentage(uint256 number, uint256 percent) internal pure returns(uint256 result) {
         result = number.mul(percent) / 100;
     }
+
     /**
     * @dev Function to get purchase status of buyer for specific item id
     * @param _buyer Buyer to get purchase status
     * @param _id Price id item to get purchase status.
     */
-    function getPurchaseStatus(address _buyer, string _id) external view  returns (bool permission){
-        permission = purchaseStatus[_buyer][_id];
+    function getPurchaseStatus(address _buyer, string _id) external view  returns (bool permission) {
+        if (_buyer == owner) {
+            permission = true;
+        } else {
+            permission = purchaseStatus[_buyer][_id];
+        }
     }
 
     /**
