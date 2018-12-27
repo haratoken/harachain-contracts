@@ -3,7 +3,7 @@ pragma solidity ^0.4.25;
 import "./BasicMarketItem.sol";
 import "./interfaces/IBuyMechanism.sol";
 import "./DataFactoryRegistry.sol";
-// import "./library/SafeMath.sol";
+
 import "./../open-zeppelin/token/ERC20/ERC20.sol";
 import "./../open-zeppelin/math/SafeMath.sol";
 
