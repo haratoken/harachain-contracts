@@ -4,7 +4,7 @@ import "./interfaces/IPriceable.sol";
 import "./interfaces/IBuyable.sol";
 import "./interfaces/IWithdrawable.sol";
 import "./interfaces/IPriceable.sol";
-import "./Ownable.sol";
+import "./../open-zeppelin/ownership/Ownable.sol";
 
 /**
  * @title BasicMarketItem

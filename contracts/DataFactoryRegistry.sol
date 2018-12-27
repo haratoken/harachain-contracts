@@ -1,6 +1,6 @@
 pragma solidity ^0.4.25;
 
-import "./Ownable.sol";
+import "./../open-zeppelin/ownership/Ownable.sol";
 import "./interfaces/IDataFactory.sol";
 /**
  * @title DataFactoryRegistry

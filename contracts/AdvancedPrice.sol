@@ -1,7 +1,7 @@
 pragma solidity ^0.4.25;
 
 import "./interfaces/IPriceable.sol";
-import "./Ownable.sol";
+import "./../open-zeppelin/ownership/Ownable.sol";
 
 
 /**
