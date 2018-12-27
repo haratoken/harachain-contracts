@@ -1,0 +1,16 @@
+version: '3'
+services:
+  ganache:
+    image: trufflesuite/ganache-cli:v6.1.0
+    command: ganache-cli -h 0.0.0.0
+    ports:
+      - "8545:8545"
+  truffle_hart:
+    image: contracts:dev
+    environment:
+    - DEVELOPMENT_HOST=${DEVELOPMENT_HOST}
+    command: bash -c "truffle test --network development"
+    depends_on:
+    - ganache
+    volumes:
+    - ./reports:/code/reports

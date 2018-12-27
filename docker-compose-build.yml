@@ -1,0 +1,7 @@
+version: '3'
+services:
+  truffle_hart:
+    image: contracts:dev
+    environment:
+    - DEVELOPMENT_HOST=${DEVELOPMENT_HOST}
+    command: bash -c "truffle compile --network development"
