@@ -13,10 +13,5 @@ interface IPriceable {
 
     // functions
     function setPrice(string _id, uint256 _value) external;
-
     function getPrice(string _id) external view  returns (uint256 _idPrice);
-
-    // function isSale(string _id) external view returns (bool _saleStatus);
-
-    // function setSale(string _id, bool _saleStatus) public;
 }
