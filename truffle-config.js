@@ -34,7 +34,7 @@ module.exports = {
   reporter: "spec",
   reporter: "mocha-junit-reporter", 
   reporterOptions: {  
-    mochaFile: "reports/testresults.xml"
+    mochaFile: "coverage/testresults.xml"
   }  
 },
 };
