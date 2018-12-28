@@ -10,7 +10,7 @@ import "./../open-zeppelin/ownership/Ownable.sol";
  */
 contract AdvancedPrice is IPriceable, Ownable {
     // storage
-    mapping(string=>uint256) price;
+    mapping(bytes32=>uint256) price;
     address dataAddress;
     
     // events
@@ -32,7 +32,7 @@ contract AdvancedPrice is IPriceable, Ownable {
     * @param _id Price id of item.
     * @param _value Value of item.
     */
-    function setPrice(string _id, uint256 _value) external onlyData {
+    function setPrice(bytes32 _id, uint256 _value) external onlyData {
         price[_id] = _value;
     }
 
@@ -41,7 +41,7 @@ contract AdvancedPrice is IPriceable, Ownable {
     * @param _id Price id of item.
     * @return Uint256 of price.
     */
-    function getPrice(string _id) external view  returns (uint256 idPrice) {        
+    function getPrice(bytes32 _id) external view  returns (uint256 idPrice) {        
         idPrice = this.getPrice(_id, msg.sender);
     }
 
@@ -51,7 +51,7 @@ contract AdvancedPrice is IPriceable, Ownable {
     * @param _data Address.
     * @return Uint256 of price.
     */
-    function getPrice(string _id, address _data) public view  returns (uint256 idPrice) {
+    function getPrice(bytes32 _id, address _data) public view  returns (uint256 idPrice) {
         idPrice = price[_id];
     }
 

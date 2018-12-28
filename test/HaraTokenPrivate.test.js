@@ -37,8 +37,8 @@ contract('HaraTokenPrivate', accounts => {
                     web3.utils.asciiToHex("markle"), token.address, df.address,
                     {from: itemOwner, gas: 4700000});
 
-    await ds.setPrice("1", 5, {from: itemOwner});
-    await ds.setSale("1", true, {from: itemOwner});
+    await ds.setPrice(web3.utils.fromAscii("1"), 5, {from: itemOwner});
+    await ds.setSale(web3.utils.fromAscii("1"), true, {from: itemOwner});
 
   });
 

@@ -19,7 +19,7 @@ contract('DataStore', accounts => {
   const initSignatureFunc = "keccak";
   const initKeyMetadata = [web3.utils.asciiToHex("size"), web3.utils.asciiToHex("filename")];
   const initValueMetadata = [web3.utils.asciiToHex("2MB"), web3.utils.asciiToHex("ktp.jpg")];
-  const initPriceId = "0";
+  const initPriceId = web3.utils.fromAscii("0");
   const initPriceValue = web3.utils.toWei("10");
 
   const dataOwner = accounts[0];
@@ -241,7 +241,7 @@ contract('DataStore', accounts => {
       // console.log(receipt.logs)
       var logs = receipt.logs;
       assert.strictEqual(logs[0].event, "PriceChangedLog");
-      assert.strictEqual(logs[0].args.id, initPriceId);
+      assert.strictEqual(logs[0].args.id, web3.utils.padRight(initPriceId, 64));
       assert.strictEqual(logs[0].args.oldValue.toString(), "0");
       assert.strictEqual(logs[0].args.newValue.toString(), web3.utils.toWei("20").toString());
     });

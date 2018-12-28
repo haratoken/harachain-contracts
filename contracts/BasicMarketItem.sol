@@ -21,8 +21,8 @@ contract BasicMarketItem is IPriceable, IBuyable, IWithdrawable, Ownable {
         transferOwnership(_owner);
     }
 
-    function isSale(string _id) external view returns (bool _saleStatus);
+    function isSale(bytes32 _id) external view returns (bool _saleStatus);
 
-    function setSale(string _id, bool _saleStatus) public;
+    function setSale(bytes32 _id, bool _saleStatus) public;
 
 }

@@ -18,10 +18,10 @@ contract DataStore is BasicMarketItem {
 
     // storage
     address public priceAddress;
-    mapping(string=>uint256) internal price;
+    mapping(bytes32=>uint256) internal price;
 
-    mapping(string=>bool) internal saleStatus;
-    mapping(address=>mapping(string=>bool)) private purchaseStatus;
+    mapping(bytes32=>bool) internal saleStatus;
+    mapping(address=>mapping(bytes32=>bool)) private purchaseStatus;
 
     DataFactoryRegistry dataFactory;
     IBuyMechanism private buyMechanism;
@@ -151,9 +151,9 @@ contract DataStore is BasicMarketItem {
     * @param _id Price id of item.
     * @param _value Value of item.
     */
-    function setPrice(string _id, uint256 _value) external onlyOwner {
+    function setPrice(bytes32 _id, uint256 _value) external onlyOwner {
         uint256 _oldValue;
-        if (priceAddress == address(0)){
+        if (priceAddress == address(0)) {
             _oldValue = price[_id];
             price[_id] = _value;
         } else {
@@ -169,7 +169,7 @@ contract DataStore is BasicMarketItem {
     * @param _id Price id of item.
     * @return Uint256 of price.
     */
-    function getPrice(string _id) external view  returns (uint256 idPrice) {
+    function getPrice(bytes32 _id) external view  returns (uint256 idPrice) {
         if (priceAddress == address(0)) {
             idPrice = price[_id];
         } else {
@@ -183,7 +183,7 @@ contract DataStore is BasicMarketItem {
     * @param _id Price id of item.
     * @param _saleStatus Sale status of specific item price Id. True means on sale.
     */
-    function setSale(string _id, bool _saleStatus) public onlyOwner {
+    function setSale(bytes32 _id, bool _saleStatus) public onlyOwner {
         saleStatus[_id] = _saleStatus;
         emit SaleLog(address(this), _id, _saleStatus);
     }
@@ -193,7 +193,7 @@ contract DataStore is BasicMarketItem {
     * @param _id Price id of item.
     * @return Boolean of sale status. True means on sale.
     */
-    function isSale(string _id)  external view returns (bool _saleStatus){
+    function isSale(bytes32 _id)  external view returns (bool _saleStatus){
         _saleStatus = saleStatus[_id];
     }
 
@@ -221,7 +221,7 @@ contract DataStore is BasicMarketItem {
 
         address buyer;
         address seller;
-        string memory id;
+        bytes32 id;
         uint256 value;
         (buyer, seller, id, value) = buyMechanism.getReceipt(_txReceipt);
         purchaseStatus[buyer][id] = true;
@@ -243,7 +243,7 @@ contract DataStore is BasicMarketItem {
     * @param _buyer Buyer to get purchase status
     * @param _id Price id item to get purchase status.
     */
-    function getPurchaseStatus(address _buyer, string _id) external view  returns (bool permission) {
+    function getPurchaseStatus(address _buyer, bytes32 _id) external view  returns (bool permission) {
         if (_buyer == owner) {
             permission = true;
         } else {

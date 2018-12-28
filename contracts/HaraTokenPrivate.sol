@@ -476,7 +476,7 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     struct Receipt { 
         address buyer;
         address seller;
-        string id;
+        bytes32 id;
         uint256 value;
     }
     mapping(uint256=>Receipt) private txReceipt;
@@ -490,8 +490,8 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     event BurnLog(uint256 indexed id, address indexed burner, uint256 value, bytes32 hashDetails, string data);
     event MintLog(uint256 indexed id, address indexed requester, uint256 value, bool status);
     event PaidLog(address from, address to, uint256 value);
-    event ReceiptCreatedLog(uint256 receiptId, address buyer, address seller, string id, uint256 value);
-    event ItemBoughtLog(uint256 receiptId, address buyer, address seller, string id, uint256 value);
+    event ReceiptCreatedLog(uint256 receiptId, address buyer, address seller, bytes32 id, uint256 value);
+    event ItemBoughtLog(uint256 receiptId, address buyer, address seller, bytes32 id, uint256 value);
     event TransferFeeChanged(uint256 oldFee, uint256 newFee, address modifierFee);
     event TransferFeeRecipientChanged(address oldRecipient, address newRecipient, address modifierRecipient);
     event FeeTransferedLog(address to, uint256 amountOfFee);
@@ -599,7 +599,7 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param value The amount of tokens to pay the item.
     * @param buyer Buyer address.
     */
-    function buy(address seller, string id, uint256 value, address buyer) public haveEnoughToken(buyer, value){
+    function buy(address seller, bytes32 id, uint256 value, address buyer) public haveEnoughToken(buyer, value){
       IPriceable itemPrice = IPriceable(seller);
       // require(itemPrice.isSale(id) == true, "Item is not on sale");
       require(value >= itemPrice.getPrice(id), "Value underpriced");
@@ -621,7 +621,7 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param id Id of item to buy.
     * @param value The amount of tokens to pay the item.
     */
-    function buy(address seller, string id, uint256 value) public haveEnoughToken(msg.sender, value){
+    function buy(address seller, bytes32 id, uint256 value) public haveEnoughToken(msg.sender, value){
       buy(seller, id, value, msg.sender);
     }
     /**
@@ -630,7 +630,7 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @return Tuple of buyer, seller, id, and value on reciept.
     */
     function getReceipt(uint256 _txReceiptId) external view
-    returns (address buyer, address seller, string id, uint256 value) {
+    returns (address buyer, address seller, bytes32 id, uint256 value) {
       Receipt memory receipt =  txReceipt[_txReceiptId];
       buyer = receipt.buyer;
       seller = receipt.seller;
