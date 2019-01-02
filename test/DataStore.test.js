@@ -1,5 +1,6 @@
 const DataStoreContract = artifacts.require('DataStore');
 const DataFactory = artifacts.require('DataFactory');
+const DataFactoryRegistry = artifacts.require('DataFactoryRegistry');
 const AdvancedPrice= artifacts.require('AdvancedPrice');
 const HaraToken = artifacts.require('HaraTokenPrivate');
 
@@ -10,6 +11,7 @@ const encoderDecoder = require("./helpers/encoderDecoder")
 contract('DataStore', accounts => {
   let datastore;
   let dataFactory;
+  let dataFactoryRegistry;
   let hart;
   let ap;
   let priceAddress;
@@ -44,13 +46,17 @@ contract('DataStore', accounts => {
       hart.options.address,
       { from: owner } ); 
     
+    dataFactoryRegistry = await DataFactoryRegistry.new( 
+      dataFactory.address,
+      { from: owner } ); 
+    
     datastore = await DataStoreContract.new( 
       dataOwner, 
       initLocation, 
       web3.utils.asciiToHex(initSignature),
       web3.utils.asciiToHex(initSignatureFunc),
       hart.options.address,
-      dataFactory.address,
+      dataFactoryRegistry.address,
       { from: dataOwner } ); 
       // console.log(datastore.address);
       ap = await AdvancedPrice.new( 
@@ -149,36 +155,38 @@ contract('DataStore', accounts => {
     });
   });
 
-  // describe('buy data', async function(){
-  //   before(async function () {
-  //     await hart.methods.transfer(buyer, web3.utils.toWei("100")).send({from: owner});
-  //   });
+  describe('buy data', async function(){
+    before(async function () {
+      await hart.methods.transfer(buyer, web3.utils.toWei("100")).send({from: owner});
+    });
 
-  //   it('can buy id 0 with hart', async function(){
-  //     var haraBefore = await hart.methods.balanceOf(owner).call();
-  //     var locationBefore = await hart.methods.balanceOf(initLocation).call();
+    it('can buy id 0 with hart', async function(){
+      var haraBefore = await hart.methods.balanceOf(owner).call() / 10000000;
+      var locationBefore = await hart.methods.balanceOf(initLocation).call()  / 10000000;
 
-  //     await hart.methods.buy(datastore.address, initPriceId, web3.utils.toWei("20")).send({from: buyer, gas:3000000});
-  //     var receipt = await hart.methods.getReceipt(1).call();
-  //     assert.strictEqual(receipt.buyer, buyer);
-  //     assert.strictEqual(receipt.seller, datastore.address);
-  //     assert.strictEqual(receipt.id.toString(), initPriceId);
-  //     assert.strictEqual(receipt.value.toString(), web3.utils.toWei("20"));
+      await hart.methods.buy(datastore.address, initPriceId, web3.utils.toWei("20")).send({from: buyer, gas:3000000});
+      var receipt = await hart.methods.getReceipt(1).call();
+      assert.strictEqual(receipt.buyer, buyer);
+      assert.strictEqual(receipt.seller, datastore.address);
+      assert.strictEqual(receipt.id.toString(), web3.utils.padRight(initPriceId, 64));
+      assert.strictEqual(receipt.value.toString(), web3.utils.toWei("20"));
 
-  //     var permission = await datastore.getPurchaseStatus(buyer, "0");
-  //     assert.strictEqual(permission, true);
+      var permission = await datastore.getPurchaseStatus(buyer, initPriceId);
+      assert.strictEqual(permission, true);
 
-  //     var haraAfter = await hart.methods.balanceOf(owner).call();
-  //     var locationAfter = await hart.methods.balanceOf(initLocation).call();
-  //     assert.strictEqual(haraAfter-haraBefore, web3.utils.toWei("20") * 0.15)
-  //     assert.strictEqual(locationAfter-locationBefore, web3.utils.toWei("20") * 0.05)
-  //   });
+      var haraAfter = await hart.methods.balanceOf(owner).call() / 10000000;
+      var locationAfter = await hart.methods.balanceOf(initLocation).call()  / 10000000;
+      console.log("haraAfter", haraAfter);
+      console.log("haraBefore", haraBefore);
+      assert.strictEqual(haraAfter-haraBefore, web3.utils.toWei("20") * 0.15 / 10000000)
+      assert.strictEqual(locationAfter-locationBefore, web3.utils.toWei("20") * 0.05 / 10000000)
+    });
 
-  //   it('status is false for id 1', async function(){
-  //     var permission = await datastore.getPurchaseStatus(buyer, "1");
-  //     assert.strictEqual(permission, false);
-  //   });
-  // });
+    it('status is false for id 1', async function(){
+      var permission = await datastore.getPurchaseStatus(buyer, web3.utils.fromAscii("1"));
+      assert.strictEqual(permission, false);
+    });
+  });
 
   describe('purchased data permission', async function () {   
     it('true if owner', async function(){

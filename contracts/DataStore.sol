@@ -214,11 +214,6 @@ contract DataStore is BasicMarketItem {
     * @return Boolean of buy status.
     */
     function buy(uint256 _txReceipt) public onlyHart returns (bool) {
-    // function buy(address seller, bytes32 id, uint256 value, address buyer, uint256 txReciept) 
-    // public onlyHart returns (bool) {
-        // require(isSale(id) == true, "Item is not on sale");
-        // require(value >= getPrice(id), "Value underpriced");
-
         address buyer;
         address seller;
         bytes32 id;

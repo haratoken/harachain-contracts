@@ -4,8 +4,6 @@ const DataFactory = artifacts.require('DataFactory');
 const DataFactoryRegistry = artifacts.require('DataFactoryRegistry');
 
 const expectRevert = require("./helpers/expectRevert")
-// const DataStore = require('./helpers/DataStore.js')
-// const DataFactory = require('./helpers/DataFactory.js')
 
 contract('HaraTokenPrivate', accounts => {
   let token;
@@ -26,15 +24,14 @@ contract('HaraTokenPrivate', accounts => {
     token = await HaraTokenPrivate.new({ from: creator, gas: 4700000 });
 
     // deploy data factory contract
-    // var datafactoryContract = new web3.eth.Contract(DataFactory.abi);
     df = await DataFactory.new(token.address, {from: creator, gas: 4700000});
 
+    // deploy data factory registry
     dfr = await DataFactoryRegistry.new(df.address, {from: creator, gas: 4700000});
     
     // deploy data store contract
-    // var datastoreContract = new web3.eth.Contract(DataStore.abi);
     ds = await DataStore.new(itemOwner, "0xB8EB1CD45DDe2BB69aE087f566629Fa82FA8fa54", "0x430dec04b9ebe807ce8fb9b0d025861c13f5e36f226c12469ff6f89fb217fa9f",
-                    web3.utils.asciiToHex("markle"), token.address, df.address,
+                    web3.utils.asciiToHex("markle"), token.address, dfr.address,
                     {from: itemOwner, gas: 4700000});
 
     await ds.setPrice(web3.utils.fromAscii("1"), 5, {from: itemOwner});
@@ -98,7 +95,7 @@ contract('HaraTokenPrivate', accounts => {
       var creatorBefore = await token.balanceOf(creator);
       var receipt = await token.burnToken(20 * Math.pow(10, 18), "1this is tes", { from: burner });
       const logs = receipt.logs;
-      // console.log(logs[5].args)
+
       const afterBurn = await token.balanceOf(burner);
       assert.strictEqual(afterBurn.toString(), (80  * Math.pow(10, 18)).toString());
       var creatorAfter = await token.balanceOf(creator);
@@ -106,6 +103,7 @@ contract('HaraTokenPrivate', accounts => {
       assert.strictEqual(logs[5].event, "BurnLog");
       assert.strictEqual(logs[5].args.__length__, 5);
       assert.strictEqual(logs[5].args.burner.toLowerCase(), burner.toLowerCase());
+
       //value burn after substract with transfer fee
       assert.strictEqual(logs[5].args.value.toString(), (10 * Math.pow(10, 18)).toString());
       assert.strictEqual(logs[5].args.data, "1this is tes");
@@ -158,54 +156,52 @@ contract('HaraTokenPrivate', accounts => {
   });
   describe('contract have buy mechanism', async function () {
     before(async function(){
-      await token.transfer(buyer, 100, { from: creator });
+      await token.transfer(buyer, web3.utils.toWei("100"), { from: creator });
     });
 
-    // it('can buy item', async function (){
-    //   var before = await token.balanceOf(ds.address);
-    //   console.log(before)
-    //   var buyItem = await token.buy(ds.address, "1", 10, {from: buyer});
-    //   console.log(buyItem)
-    //   var receipt = await token.getReceipt(1);
-    //   console.log(receipt)
-    //   var after = await token.balanceOf(ds.address);
-    //   assert.strictEqual(before.toString(), "0");
-    //   assert.strictEqual(after.toString(), "9");
-    //   assert.strictEqual(receipt.buyer, buyer);
-    //   assert.strictEqual(receipt.seller, ds.address);
-    //   assert.strictEqual(receipt.id, "1");
-    //   assert.strictEqual(receipt.value.toString(), "10")
+    it('can buy item', async function (){
+      var before = await token.balanceOf(ds.address);
+      var buyItem = await token.buy(ds.address, web3.utils.fromAscii("1"), web3.utils.toWei("10"), {from: buyer});
+      var receipt = await token.getReceipt(1);
+      var after = await token.balanceOf(ds.address);
+      
+      assert.strictEqual(before.toString(), web3.utils.toWei("0"));
+      assert.strictEqual(after.toString(), (web3.utils.toWei("10") * 0.8).toString());
+      assert.strictEqual(receipt.buyer, buyer);
+      assert.strictEqual(receipt.seller, ds.address);
+      assert.strictEqual(receipt.id, web3.utils.padRight(web3.utils.fromAscii("1"), 64));
+      assert.strictEqual(receipt.value.toString(), web3.utils.toWei("10"));
 
-    //   var logs = buyItem.logs;
-    //   assert.strictEqual(logs.length, 6);
+      var logs = buyItem.logs;
+      assert.strictEqual(logs.length, 6);
 
-    // });
+    });
 
-    // it('can not buy item if price underpriced', async function (){
-    //   var before = await token.balanceOf(buyer);
-    //   await expectRevert(
-    //     token.buy(ds.address, "1", 2, {from: buyer})
-    //   );
-    //   var after = await token.balanceOf(buyer);
-    //   assert.strictEqual(before.toString(), after.toString());
-    // });
+    it('can not buy item if price underpriced', async function (){
+      var before = await token.balanceOf(buyer);
+      await expectRevert(
+        token.buy(ds.address, web3.utils.fromAscii("1"), 2, {from: buyer})
+      );
+      var after = await token.balanceOf(buyer);
+      assert.strictEqual(before.toString(), after.toString());
+    });
 
-    // it('can not buy item if buyer don\'t have enough token', async function (){
-    //   var before = await token.balanceOf(buyer);
-    //   await expectRevert(
-    //     token.buy(ds.address, "1", 100, {from: buyer})
-    //   );
-    //   var after = await token.balanceOf(buyer);
-    //   assert.strictEqual(before.toString(), after.toString());
-    // });
-    // it('can not buy item if seller address is not address', async function (){
-    //   var before = await token.balanceOf(buyer);
-    //   await expectRevert(
-    //     token.buy("1", "1", 100, {from: buyer})
-    //   );
-    //   var after = await token.balanceOf(buyer);
-    //   assert.strictEqual(before.toString(), after.toString());
-    // });
+    it('can not buy item if buyer don\'t have enough token', async function (){
+      var before = await token.balanceOf(buyer);
+      await expectRevert(
+        token.buy(ds.address, web3.utils.fromAscii("1"), web3.utils.toWei("100"), {from: buyer})
+      );
+      var after = await token.balanceOf(buyer);
+      assert.strictEqual(before.toString(), after.toString());
+    });
+    it('can not buy item if seller address is not address', async function (){
+      var before = await token.balanceOf(buyer);
+      await expectRevert(
+        token.buy("1", web3.utils.fromAscii("1"), 100, {from: buyer})
+      );
+      var after = await token.balanceOf(buyer);
+      assert.strictEqual(before.toString(), after.toString());
+    });
   });
 
   describe('have token bridge address and burn fee', async function () {

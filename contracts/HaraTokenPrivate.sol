@@ -479,6 +479,7 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
         bytes32 id;
         uint256 value;
     }
+    
     mapping(uint256=>Receipt) private txReceipt;
     uint256 public receiptNonce;
 
@@ -511,15 +512,15 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param value value of token transfer.
     */
     modifier valueMoreThanFee(uint256 value){
-      require(value > transferFee, "value must be more than transfer fee");
+        require(value > transferFee, "value must be more than transfer fee");
         _;
     }
 
     constructor() public {
-      transferFee = 10 * (10 ** uint256(decimals));
-      emit TransferFeeChanged(0, transferFee, msg.sender);
-      transferFeeRecipient = msg.sender;
-      emit TransferFeeRecipientChanged(address(0), msg.sender, msg.sender);
+        transferFee = 10 * (10 ** uint256(decimals));
+        emit TransferFeeChanged(0, transferFee, msg.sender);
+        transferFeeRecipient = msg.sender;
+        emit TransferFeeRecipientChanged(address(0), msg.sender, msg.sender);
     }
 
     /**
@@ -527,9 +528,9 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
    * @param feeValue new fee value
    */
     function setTransferFee(uint feeValue) onlyOwner public {
-      uint256 oldValue = transferFee;
-      transferFee = feeValue;
-      emit TransferFeeChanged(oldValue, transferFee, msg.sender);
+        uint256 oldValue = transferFee;
+        transferFee = feeValue;
+        emit TransferFeeChanged(oldValue, transferFee, msg.sender);
     }
 
     /**
@@ -537,9 +538,9 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
    * @param newRecipient new recipient ro recieved transfer fee
    */
     function setTransferRecipient(address newRecipient) onlyOwner public {
-      address oldRecipient = transferFeeRecipient;
-      transferFeeRecipient = newRecipient;
-      emit TransferFeeRecipientChanged(oldRecipient, transferFeeRecipient, msg.sender);
+        address oldRecipient = transferFeeRecipient;
+        transferFeeRecipient = newRecipient;
+        emit TransferFeeRecipientChanged(oldRecipient, transferFeeRecipient, msg.sender);
     }
 
     /**
@@ -559,10 +560,10 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param data String of description.
     */
     function burnToken(uint256 value, string data) valueMoreThanFee(value) public {
-      emit BurnRequestLog(nonce, msg.sender, value, hashDetails(nonce, msg.sender, value, HART_NETWORK_ID), data);
-      require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
-      emit FeeTransferedLog(transferFeeRecipient, transferFee);
-      doBurnToken(value.sub(transferFee), data);
+        emit BurnRequestLog(nonce, msg.sender, value, hashDetails(nonce, msg.sender, value, HART_NETWORK_ID), data);
+        require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
+        emit FeeTransferedLog(transferFeeRecipient, transferFee);
+        doBurnToken(value.sub(transferFee), data);
     }
 
     /**
@@ -570,8 +571,8 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param value The amount of tokens to burn.
     */
     function burnToken(uint256 value) valueMoreThanFee(value) public {
-      require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
-      doBurnToken(value.sub(transferFee), "");
+        require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
+        doBurnToken(value.sub(transferFee), "");
     }
 
     /**
@@ -600,19 +601,19 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param buyer Buyer address.
     */
     function buy(address seller, bytes32 id, uint256 value, address buyer) public haveEnoughToken(buyer, value){
-      IPriceable itemPrice = IPriceable(seller);
-      // require(itemPrice.isSale(id) == true, "Item is not on sale");
-      require(value >= itemPrice.getPrice(id), "Value underpriced");
-      require(transfer(seller, value), "Payment failed");
-      emit PaidLog(msg.sender, seller, value);
-      
-      receiptNonce = receiptNonce.add(1);
-      txReceipt[receiptNonce] = Receipt(msg.sender, seller, id, value);
-      emit ReceiptCreatedLog(receiptNonce, msg.sender, seller, id, value);
-      
-      IBuyable item = IBuyable(seller);
-      require(item.buy(receiptNonce), "Buy proccess failed");
-      emit ItemBoughtLog(receiptNonce, msg.sender, seller, id, value);
+        IPriceable itemPrice = IPriceable(seller);
+        require(itemPrice.isSale(id) == true, "Item is not on sale");
+        require(value >= itemPrice.getPrice(id), "Value underpriced");
+        require(transfer(seller, value), "Payment failed");
+        emit PaidLog(msg.sender, seller, value);
+        
+        receiptNonce = receiptNonce.add(1);
+        txReceipt[receiptNonce] = Receipt(msg.sender, seller, id, value);
+        emit ReceiptCreatedLog(receiptNonce, msg.sender, seller, id, value);
+        
+        IBuyable item = IBuyable(seller);
+        require(item.buy(receiptNonce), "Buy proccess failed");
+        emit ItemBoughtLog(receiptNonce, msg.sender, seller, id, value);
     }
 
     /**
@@ -622,7 +623,7 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param value The amount of tokens to pay the item.
     */
     function buy(address seller, bytes32 id, uint256 value) public haveEnoughToken(msg.sender, value){
-      buy(seller, id, value, msg.sender);
+        buy(seller, id, value, msg.sender);
     }
     /**
     * @dev Function to get reciept from certain transaction receipt id.
@@ -631,11 +632,11 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     */
     function getReceipt(uint256 _txReceiptId) external view
     returns (address buyer, address seller, bytes32 id, uint256 value) {
-      Receipt memory receipt =  txReceipt[_txReceiptId];
-      buyer = receipt.buyer;
-      seller = receipt.seller;
-      id = receipt.id;
-      value = receipt.value;
+        Receipt memory receipt =  txReceipt[_txReceiptId];
+        buyer = receipt.buyer;
+        seller = receipt.seller;
+        id = receipt.id;
+        value = receipt.value;
     }
 
     /**
