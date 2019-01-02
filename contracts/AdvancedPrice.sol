@@ -56,6 +56,15 @@ contract AdvancedPrice is IPriceable, Ownable {
     }
 
     /**
+    * @dev Function to get sale status of specific price Id.
+    * @param _id Price id of item.
+    * @return Boolean of sale status. True means on sale.
+    */
+    function isSale(bytes32 _id)  external view returns (bool _saleStatus){
+        return true;
+    }
+
+    /**
     * @dev function to destroy contract
     */
     function kill() 
