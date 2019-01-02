@@ -20,9 +20,7 @@ contract BasicMarketItem is IPriceable, IBuyable, IWithdrawable, Ownable {
     constructor(address _owner) public {
         transferOwnership(_owner);
     }
-
-    function isSale(bytes32 _id) external view returns (bool _saleStatus);
-
+       
     function setSale(bytes32 _id, bool _saleStatus) public;
 
 }
