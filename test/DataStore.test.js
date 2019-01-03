@@ -58,7 +58,7 @@ contract('DataStore', accounts => {
       hart.options.address,
       dataFactoryRegistry.address,
       { from: dataOwner } ); 
-      // console.log(datastore.address);
+
       ap = await AdvancedPrice.new( 
         datastore.address,
         { from: dataOwner } ); 
@@ -176,8 +176,7 @@ contract('DataStore', accounts => {
 
       var haraAfter = await hart.methods.balanceOf(owner).call() / 10000000;
       var locationAfter = await hart.methods.balanceOf(initLocation).call()  / 10000000;
-      console.log("haraAfter", haraAfter);
-      console.log("haraBefore", haraBefore);
+
       assert.strictEqual(haraAfter-haraBefore, web3.utils.toWei("20") * 0.15 / 10000000)
       assert.strictEqual(locationAfter-locationBefore, web3.utils.toWei("20") * 0.05 / 10000000)
     });
@@ -246,7 +245,6 @@ contract('DataStore', accounts => {
       var currentPrice = await datastore.getPrice(initPriceId);
       assert.strictEqual(currentPrice.toString(), web3.utils.toWei("20"));
 
-      // console.log(receipt.logs)
       var logs = receipt.logs;
       assert.strictEqual(logs[0].event, "PriceChangedLog");
       assert.strictEqual(logs[0].args.id, web3.utils.padRight(initPriceId, 64));
