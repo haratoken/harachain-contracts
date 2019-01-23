@@ -4,7 +4,8 @@ const DataStoreContract = artifacts.require('DataStore');
 const HaraToken = artifacts.require('HaraTokenPrivate');
 
 const expectRevert = require("./helpers/expectRevert");
-const encoderDecoder = require("./helpers/encoderDecoder")
+const encoderDecoder = require("./helpers/encoderDecoder");
+const logsDetail = require("./helpers/LogsHelper");
 
 contract('DataFactoryRegistry', accounts => {
   let datafactoryregistry;
@@ -25,28 +26,11 @@ contract('DataFactoryRegistry', accounts => {
   const owner = accounts[3]; // hart owner
   const otherDataOwner1 = accounts[4];
 
-  const DataCreationLogTopic = "0xba4eef7a56e3b8bee912b9f8f83435cf9021729f21d02a5abc46aa90e0940305";
-  const DataCreationLogAbi = [{
-    "indexed": false,
-    "name": "contractDataAddress",
-    "type": "address"
-  }, {
-    "indexed": false,
-    "name": "owner",
-    "type": "address"
-  }, {
-    "indexed": false,
-    "name": "location",
-    "type": "address"
-  }, {
-    "indexed": false,
-    "name": "signature",
-    "type": "bytes"
-  }, {
-    "indexed": false,
-    "name": "signatureFunc",
-    "type": "bytes"
-  }];
+  const DataCreationLogTopic = logsDetail.DataFactory.DataCreationLogTopic;
+  const DataCreationLogAbi = logsDetail.DataFactory.DataCreationLogAbi;
+
+  const DataFactoryAddressChangedLogTopic = logsDetail.DataFactoryRegistry.DataFactoryAddressChangedLogTopic;
+  const DataFactoryAddressChangedLogAbi = logsDetail.DataFactoryRegistry.DataFactoryAddressChangedLogAbi;
 
   before(async function () {
     // deploy hara token contract
@@ -57,7 +41,7 @@ contract('DataFactoryRegistry', accounts => {
       from: owner,
       gas: 4700000
     });
-    initHartAddress = hart.addrress;
+    initHartAddress = hart.options.address;
 
     await hart.methods.mint(owner, web3.utils.toWei("1000")).send({
       from: owner
@@ -104,7 +88,7 @@ contract('DataFactoryRegistry', accounts => {
           from: dataOwner
         }
       );
-      const logs = receipt.receipt.logs
+      const logs = receipt.receipt.rawLogs
       const DataCreationLog = encoderDecoder.decodeLogsByTopic(DataCreationLogTopic, DataCreationLogAbi, logs)[0];
       datastore1 = await DataStoreContract.at(DataCreationLog.contractDataAddress);
     });
@@ -139,14 +123,14 @@ contract('DataFactoryRegistry', accounts => {
 
   describe('create data store contract without signature function', async function () {
     before(async function () {
-      var receipt = await datafactoryregistry.storeData(
+      var receipt = await datafactoryregistry.storeData2(
         otherDataOwner1,
         initLocation,
         web3.utils.asciiToHex(initSignature), {
           from: otherDataOwner1
         }
       );
-      const logs = receipt.receipt.logs
+      const logs = receipt.receipt.rawLogs
       const DataCreationLog = encoderDecoder.decodeLogsByTopic(DataCreationLogTopic, DataCreationLogAbi, logs)[0];
       datastore2 = await DataStoreContract.at(DataCreationLog.contractDataAddress);
     });
@@ -228,7 +212,7 @@ contract('DataFactoryRegistry', accounts => {
 
       var log = changedReciept.logs[0];
       assert.strictEqual(log.event, "PercentageChanged");
-      assert.strictEqual(log.args.who, "Hara");
+      assert.strictEqual(log.args.who.toString(), "0");
       assert.strictEqual(log.args.oldPercentage.toString(), "15");
       assert.strictEqual(log.args.newPercentage.toString(), "10");
     });
@@ -242,7 +226,7 @@ contract('DataFactoryRegistry', accounts => {
 
       var log = changedReciept.logs[0];
       assert.strictEqual(log.event, "PercentageChanged");
-      assert.strictEqual(log.args.who, "DataProvider");
+      assert.strictEqual(log.args.who.toString(), "1");
       assert.strictEqual(log.args.oldPercentage.toString(), "5");
       assert.strictEqual(log.args.newPercentage.toString(), "10");
     });
@@ -296,24 +280,6 @@ contract('DataFactoryRegistry', accounts => {
   });
   describe('change data factory address on registry contract', async function () {
     let dataFactoryNew;
-    const logTopic = "0xe9192a628b2c8c954d2affbd49e739e2a839c14cd11ee4d9484481e56410be5a";
-    const logInputAbi = [
-			{
-				"indexed": false,
-				"name": "who",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"name": "oldAddress",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"name": "newAddress",
-				"type": "address"
-			}
-		];
 
     before(async function () {
       dataFactoryNew = await DataFactoryContract.new(
@@ -325,9 +291,8 @@ contract('DataFactoryRegistry', accounts => {
       var receipt = await datafactoryregistry.setDataFactoryAddress(dataFactoryNew.address, {
         from: factoryOwner
       });
-      const logs = receipt.receipt.logs;
-      const log = encoderDecoder.decodeLogsByTopic(logTopic, logInputAbi, logs)[0];
-      
+      const logs = receipt.receipt.rawLogs;
+      const log = encoderDecoder.decodeLogsByTopic(DataFactoryAddressChangedLogTopic, DataFactoryAddressChangedLogAbi, logs)[0];
       assert.strictEqual(logs.length, 1)
       assert.strictEqual(log.who, factoryOwner);
       assert.strictEqual(log.oldAddress, datafactory.address);

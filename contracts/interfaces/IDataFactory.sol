@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 
 /**
@@ -10,12 +10,13 @@ interface IDataFactory {
 
     // events
     event DataCreationLog(
-        address contractDataAddress, address owner, 
+        address indexed contractDataAddress, address indexed owner, 
         address location, bytes signature, bytes signatureFunc
     );    
    
-    function storeData(address _owner, address _location, bytes _signature) external 
+    function storeData2(address _owner, address _location, bytes calldata _signature) external 
     returns (address dataStoreContract);
-    function storeData(address _owner, address _location, bytes _signature, bytes _signatureFunc) external 
+    
+    function storeData(address _owner, address _location, bytes calldata _signature, bytes calldata _signatureFunc) external 
     returns (address dataStoreContract);
 }

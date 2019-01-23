@@ -3,7 +3,8 @@ const DataStore = artifacts.require('DataStore');
 const DataFactory = artifacts.require('DataFactory');
 const DataFactoryRegistry = artifacts.require('DataFactoryRegistry');
 
-const expectRevert = require("./helpers/expectRevert")
+const expectRevert = require("./helpers/expectRevert");
+const expectThrow = require("./helpers/expectThrow");
 
 contract('HaraTokenPrivate', accounts => {
   let token;
@@ -18,6 +19,9 @@ contract('HaraTokenPrivate', accounts => {
   const buyer = accounts[4];
   const transferRecipient = accounts[5];
   const notOwner = accounts[6];
+  const mintPause = accounts[7];
+  const notMintPause = accounts[8];
+  const buyer2 = accounts[9];
 
   before(async function () {
     // deploy hart contract
@@ -59,7 +63,7 @@ contract('HaraTokenPrivate', accounts => {
     assert.strictEqual(networkId.toNumber(), 2);
   });
 
-  it('assigns the initial total supply to the creator', async function () {
+  it('assure initial supply is 0', async function () {
     const totalSupply = await token.totalSupply();
     const creatorBalance = await token.balanceOf(creator);
 
@@ -69,13 +73,14 @@ contract('HaraTokenPrivate', accounts => {
 
   describe('contract is mintable and burnable', async function () {
     before(async function () {
-      await token.mint(creator, 500 * Math.pow(10, 18), {from: creator});
+      // initial transfer token
+      await token.mint(creator, web3.utils.toWei("500"), {from: creator});
     });
 
     it('transfer 10 token to burner', async function () {
       // creator balance = 10000
       // burner balance = 50
-      var transferTx  = await token.transfer(burner, 50  * Math.pow(10, 18), { from: creator });
+      var transferTx  = await token.transfer(burner, web3.utils.toWei("50"), { from: creator });
       const userToken = await token.balanceOf(burner);
       assert.strictEqual(userToken.toString(), (50  * Math.pow(10, 18)).toString());
       
@@ -90,14 +95,14 @@ contract('HaraTokenPrivate', accounts => {
       // creator balance = 500 - 50 = 450
       // burner balance  after burn = 50 + 50 - 20 = 80
       // burner balance  after mint = 40 + 20 = 60      
-      await token.transfer(burner, 50  * Math.pow(10, 18), { from: creator });
+      await token.transfer(burner, web3.utils.toWei("50"), { from: creator });
 
       var creatorBefore = await token.balanceOf(creator);
-      var receipt = await token.burnToken(20 * Math.pow(10, 18), "1this is tes", { from: burner });
+      var receipt = await token.burnToken(web3.utils.toWei("20"), "1this is tes", { from: burner });
       const logs = receipt.logs;
 
       const afterBurn = await token.balanceOf(burner);
-      assert.strictEqual(afterBurn.toString(), (80  * Math.pow(10, 18)).toString());
+      assert.strictEqual(afterBurn.toString(), (web3.utils.toWei("80")).toString());
       var creatorAfter = await token.balanceOf(creator);
       assert.strictEqual(logs.length, 6);
       assert.strictEqual(logs[5].event, "BurnLog");
@@ -105,7 +110,7 @@ contract('HaraTokenPrivate', accounts => {
       assert.strictEqual(logs[5].args.burner.toLowerCase(), burner.toLowerCase());
 
       //value burn after substract with transfer fee
-      assert.strictEqual(logs[5].args.value.toString(), (10 * Math.pow(10, 18)).toString());
+      assert.strictEqual(logs[5].args.value.toString(), (web3.utils.toWei("10")).toString());
       assert.strictEqual(logs[5].args.data, "1this is tes");
       
       var mintTx = await token.mintToken(logs[5].args.id.valueOf(), logs[5].args.burner, 
@@ -117,23 +122,23 @@ contract('HaraTokenPrivate', accounts => {
       assert.strictEqual(mintLogs[2].event, "MintLog");
       assert.strictEqual(mintLogs[2].args.id.toString(), logs[5].args.id.valueOf().toString());
       assert.strictEqual(logs[5].args.burner.toLowerCase(), burner.toLowerCase());
-      assert.strictEqual(logs[5].args.value.toString(), (10 * Math.pow(10, 18)).toString());
+      assert.strictEqual(logs[5].args.value.toString(), (web3.utils.toWei("10")).toString());
       assert.strictEqual(logs[5].args.hashDetails, logs[5].args.hashDetails);
       assert.strictEqual(logs[5].args.data, "1this is tes");
 
 
-      assert.strictEqual(afterMint.toString(), (90  * Math.pow(10, 18)).toString());
-      assert.strictEqual(creatorAfter-creatorBefore, (10  * Math.pow(10, 18)));
+      assert.strictEqual(afterMint.toString(), (web3.utils.toWei("90")).toString());
+      assert.strictEqual((creatorAfter-creatorBefore).toString(), (web3.utils.toWei("10")));
     });
   
-    it('minted by minter instead of creator', async function (){
+    it('minted by minter instead of creator', async function () {
       await token.setMinter(minter, { from: creator });
       const allowedMinter = await token.minter();
       assert.strictEqual(allowedMinter, minter);
       
       
-      await token.transfer(burner, 50  * Math.pow(10, 18), { from: creator });
-      var receiptBurn = await token.burnToken(20  * Math.pow(10, 18), "1this is tes", { from: burner });
+      await token.transfer(burner, web3.utils.toWei("50"), { from: creator });
+      var receiptBurn = await token.burnToken(web3.utils.toWei("20"), "1this is tes", { from: burner });
       const logsBurn = receiptBurn.logs;
       const receiptMint = await token.mintToken(logsBurn[5].args.id.valueOf(), logsBurn[5].args.burner, 
           logsBurn[3].args.value.valueOf(), logsBurn[5].args.hashDetails, 2, { from: minter });
@@ -145,7 +150,7 @@ contract('HaraTokenPrivate', accounts => {
       var creatorBefore = await token.balanceOf(creator);
       var burnerBefore = await token.balanceOf(burner);
       await expectRevert(
-        token.burnToken(5 * Math.pow(10, 18), "1this is tes", { from: burner })
+        token.burnToken(web3.utils.toWei("5"), "1this is tes", { from: burner })
       );
       var creatorAfter = await token.balanceOf(creator);
       var burnerAfter = await token.balanceOf(burner);
@@ -177,6 +182,15 @@ contract('HaraTokenPrivate', accounts => {
 
     });
 
+    it('can not buy item if already buy', async function (){
+      var before = await token.balanceOf(ds.address);
+      await expectRevert(
+        token.buy(ds.address, web3.utils.fromAscii("1"), web3.utils.toWei("10"), {from: buyer})
+      )
+      var after = await token.balanceOf(ds.address);
+      assert.strictEqual(before.toString(), after.toString());
+    });
+
     it('can not buy item if price underpriced', async function (){
       var before = await token.balanceOf(buyer);
       await expectRevert(
@@ -194,13 +208,45 @@ contract('HaraTokenPrivate', accounts => {
       var after = await token.balanceOf(buyer);
       assert.strictEqual(before.toString(), after.toString());
     });
+    
     it('can not buy item if seller address is not address', async function (){
       var before = await token.balanceOf(buyer);
-      await expectRevert(
-        token.buy("1", web3.utils.fromAscii("1"), 100, {from: buyer})
+      await expectThrow(
+        token.buy(web3.utils.fromAscii("1"), web3.utils.fromAscii("1"), 100, {from: buyer})
       );
       var after = await token.balanceOf(buyer);
       assert.strictEqual(before.toString(), after.toString());
+    });
+
+    it('not change storage if transfer failed', async function (){
+      // initial hart with transfer require value == 1 to make buy failed
+      const TestToken = require('./helpers/testToken.js');
+      var haratokenTestContract = new web3.eth.Contract(TestToken.abi);
+      var hartTest = await haratokenTestContract.deploy({
+          data: TestToken.bytecode
+        }).send({
+          from: creator,
+          gas: 4700000
+        });
+      await hartTest.methods.mint(buyer2, web3.utils.toWei("500")).send({
+        from: creator
+      });
+
+      var before = await hartTest.methods.balanceOf(buyer).call();
+      var beforeNonce = await hartTest.methods.receiptNonce().call();
+      var beforeReceipt = await hartTest.methods.getReceipt(beforeNonce).call();
+
+      await expectRevert(
+        hartTest.methods.buy(ds.address, web3.utils.fromAscii("1"), web3.utils.toWei("100")).send({from: buyer2, gas: 4700000})
+      );
+
+      var after = await hartTest.methods.balanceOf(buyer).call();
+      var afterNonce = await hartTest.methods.receiptNonce().call();
+      var afterReceipt = await hartTest.methods.getReceipt(afterNonce).call();
+
+      assert.strictEqual(before.toString(), after.toString());
+      assert.strictEqual(beforeNonce.toString(), afterNonce.toString());
+      assert.strictEqual(beforeReceipt.toString(), afterReceipt.toString());
     });
   });
 
@@ -227,14 +273,14 @@ contract('HaraTokenPrivate', accounts => {
     });
 
     it('set transfer fee', async function () {
-      var receipt = await token.setTransferFee(20 * Math.pow(10, 18), { from: creator });
+      var receipt = await token.setTransferFee(web3.utils.toWei("20"), { from: creator });
       var newFee = await token.transferFee();
 
       var log = receipt.logs[0];
-      assert.strictEqual(newFee.toString(), (20 * Math.pow(10, 18)).toString());
+      assert.strictEqual(newFee.toString(), (web3.utils.toWei("20")).toString());
       assert.strictEqual(log.event, "TransferFeeChanged");
-      assert.strictEqual(log.args.oldFee.toString(), (10 * Math.pow(10, 18)).toString());
-      assert.strictEqual(log.args.newFee.toString(), (20 * Math.pow(10, 18)).toString());
+      assert.strictEqual(log.args.oldFee.toString(), (web3.utils.toWei("10")).toString());
+      assert.strictEqual(log.args.newFee.toString(), (web3.utils.toWei("20")).toString());
       assert.strictEqual(log.args.modifierFee.toString(), creator);
     });
 
@@ -247,4 +293,59 @@ contract('HaraTokenPrivate', accounts => {
       assert.strictEqual(before.toString(), after.toString());
     });
   });
+
+  describe('mint can be pause', async function () {
+
+    it('set mint pause address by hart owner', async function () {
+      var receipt = await token.setMintPauseAddress(mintPause, { from: creator });
+      var newMintPauseAddress = await token.mintPauseAddress();
+      var log = receipt.logs[0];
+      assert.strictEqual(newMintPauseAddress, mintPause);
+      assert.strictEqual(log.event, "MintPauseChangedLog");
+      assert.strictEqual(log.args.mintPauseAddress, mintPause);
+      assert.strictEqual(log.args.by, creator);
+    });
+
+    it('can not set mint pause address by not hart owner', async function (){
+      await expectRevert(
+        token.setMintPauseAddress(notMintPause, { from: notOwner })
+      );
+      var newMintPauseAddress = await token.mintPauseAddress();
+      assert.strictEqual(newMintPauseAddress, mintPause);
+      assert.notEqual(newMintPauseAddress, notMintPause);
+    });
+
+    it('set mint pause status by mint pause address', async function () {
+      var receipt = await token.setIsMintPause(true, { from: mintPause });
+      var newMintPauseStatus = await token.isMintPause();
+      var log = receipt.logs[0];
+      assert.strictEqual(newMintPauseStatus, true);
+      assert.strictEqual(log.event, "MintPauseChangedLog");
+      assert.strictEqual(log.args.status, true);
+      assert.strictEqual(log.args.by, mintPause);
+    });
+
+    it('can not set mint pause status by not mint pause address', async function (){
+      await expectRevert(
+        token.setIsMintPause(false, { from: creator })
+      );
+      var newMintPauseStatus = await token.isMintPause();
+      assert.strictEqual(newMintPauseStatus, true);
+      assert.notEqual(newMintPauseStatus, false);
+    });
+
+    it('can not mint when mint pause status is true', async function () {
+      var receiptBurn = await token.burnToken(web3.utils.toWei("25"), "1this is tes", { from: burner });
+      const logsBurn = receiptBurn.logs;
+
+      var before = await token.balanceOf(burner);
+      await expectRevert(
+        token.mintToken(logsBurn[5].args.id.valueOf(), logsBurn[5].args.burner, 
+        logsBurn[3].args.value.valueOf(), logsBurn[5].args.hashDetails, 2, { from: minter })
+      );
+      var after = await token.balanceOf(burner);
+      assert.strictEqual(before.toString(), after.toString());
+    });
+  });
+
 });

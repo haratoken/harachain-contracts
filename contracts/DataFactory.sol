@@ -1,8 +1,9 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./interfaces/IDataFactory.sol";
 import "./DataStore.sol";
+
 
 /**
  * @title DataFactory
@@ -27,18 +28,19 @@ contract DataFactory is Ownable, IDataFactory {
     * @param _location Location of data.
     * @param _signature Signature of data.
     */
-    function storeData(
+    function storeData2(
         address _owner, 
         address _location, 
-        bytes _signature
+        bytes memory _signature
         )
-    external
-    returns (address dataStoreContract)
+    public
+    returns (address dataStoreContractAddress)
     {   
-        dataStoreContract = new DataStore(
+        DataStore dataStoreContract = new DataStore(
             _owner, _location,
             _signature, "keccak", hartAddress, address(this));
-        emit DataCreationLog(dataStoreContract, _owner, _location, _signature, "keccak");
+        dataStoreContractAddress = address(dataStoreContract);
+        emit DataCreationLog(dataStoreContractAddress, _owner, _location, _signature, "keccak");
     }
     
     /**
@@ -51,13 +53,14 @@ contract DataFactory is Ownable, IDataFactory {
     function storeData(
         address _owner, 
         address _location,
-        bytes _signature, 
-        bytes _signatureFunc)
-    external
-    returns (address dataStoreContract) {   
-        dataStoreContract = new DataStore(
+        bytes memory _signature, 
+        bytes memory _signatureFunc)
+    public
+    returns (address dataStoreContractAddress) {   
+        DataStore dataStoreContract = new DataStore(
             _owner, _location,
             _signature, _signatureFunc, hartAddress, address(this));
-        emit DataCreationLog(dataStoreContract, _owner, _location, _signature, _signatureFunc);
+        dataStoreContractAddress = address(dataStoreContract);
+        emit DataCreationLog(dataStoreContractAddress, _owner, _location, _signature, _signatureFunc);
     }
 }

@@ -1,6 +1,7 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 import "./interfaces/IDataProvider.sol";
+
 
 /**
  * @title DataProviderHara
@@ -12,7 +13,7 @@ contract DataProviderHara is IDataProvider {
     string public endpoint;
         
     // events
-    event EndpointChangedLog(string oldEndpoint, string newEndpoint, address by);
+    event EndpointChangedLog(string oldEndpoint, string newEndpoint, address indexed by);
 
     // modifier
     /**
@@ -42,7 +43,8 @@ contract DataProviderHara is IDataProvider {
     * @param _priceId Price Id as a versio of item.
     * @param _buyer Address of buyer.
     */
-    function getUri(string _locationId, string _priceId, string _buyer) external view endpointExists returns (string uri){
+    function getUri(string memory _locationId, string memory _priceId, string memory _buyer) public view 
+    endpointExists returns (string memory uri) {
         return string(abi.encodePacked(endpoint, "?id=", _locationId, "&&version=", _priceId, "&&address=", _buyer));
     }
 
@@ -50,7 +52,7 @@ contract DataProviderHara is IDataProvider {
     * @dev Function to get Uri item from location Id.
     * @param _newEndpoint Endpoint to be stored on contract.
     */
-    function setEndpoint(string _newEndpoint) public onlyOwner {
+    function setEndpoint(string memory _newEndpoint) public onlyOwner {
         string memory _oldEndpoint = endpoint;
         endpoint = _newEndpoint;
         emit EndpointChangedLog(_oldEndpoint, endpoint, msg.sender);

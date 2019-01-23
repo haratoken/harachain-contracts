@@ -1,8 +1,9 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 import "./interfaces/IDataProvider.sol";
 import "./interfaces/IPriceable.sol";
 import "./interfaces/IBuyMechanism.sol";
+import "./interfaces/IBuyable.sol";
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./../open-zeppelin/math/SafeMath.sol";
 import "./../open-zeppelin/token/ERC20/ERC20.sol";
@@ -12,7 +13,7 @@ import "./../open-zeppelin/token/ERC20/ERC20.sol";
  * @title DataProviderHara
  * @dev Data provider contract by hara.
  */
-contract DataProviderRegistry is Ownable, IPriceable {
+contract DataProviderRegistry is Ownable, IPriceable, IBuyable {
     using SafeMath for uint256;
     
     // storage
@@ -32,12 +33,12 @@ contract DataProviderRegistry is Ownable, IPriceable {
     ERC20 public hart;
 
     //events
-    event AuditorAddedLog(address by, address addedAuditor);
-    event AuditorRemovedLog(address by, address removedAuditor);
-    event ScoreDataProviderLog(address by, address dataProviderAddress, uint256 score);
-    event RegisterDataProviderLog(bytes32 registerId, address by, address dataProvider);
-    event RegisterCompletedLog(bytes32 registerId, address by, uint256 feeValue);
-    event RemoveDataProviderLog(address dataProvider, uint256 refundValue);
+    event AuditorAddedLog(address indexed by, address indexed addedAuditor);
+    event AuditorRemovedLog(address indexed by, address indexed removedAuditor);
+    event ScoreDataProviderLog(address indexed by, address indexed dataProviderAddress, uint256 indexed score);
+    event RegisterDataProviderLog(bytes32 indexed registerId, address indexed by, address indexed dataProvider);
+    event RegisterCompletedLog(bytes32 indexed registerId, address indexed by, uint256 indexed feeValue);
+    event RemoveDataProviderLog(address indexed dataProvider, uint256 indexed refundValue);
     
     // modifier
     /**
@@ -88,7 +89,7 @@ contract DataProviderRegistry is Ownable, IPriceable {
     * @param _value Registration fee (price).
     */
     function setPrice(bytes32 _id, uint256 _value) external onlyOwner {
-        address dataProvider = address(_id);
+        address dataProvider = address(bytes20(_id));
         uint256 _oldValue;
         _oldValue = registrationPrices[dataProvider];
         registrationPrices[dataProvider] = _value;
@@ -99,7 +100,7 @@ contract DataProviderRegistry is Ownable, IPriceable {
     * @dev Function to set registration fee (proce). Can be called only by owner.
     * @param _value Registration fee (price).
     */
-    function setPrice(uint256 _value) external onlyOwner {
+    function setPriceDefault(uint256 _value) external onlyOwner {
         uint256 _oldValue;
         _oldValue = registrationPrice;
         registrationPrice = _value;
@@ -116,15 +117,24 @@ contract DataProviderRegistry is Ownable, IPriceable {
 
     /**
     * @dev Function to get registration fee (price).
-    * @param _id Not needed.
+    * @param _id Address of specific data provider.
     */
     function getPrice(bytes32 _id) external view  returns (uint256 _idPrice) {
-        address dataProvider = address(_id);
+        address dataProvider = address(bytes20(_id));
         if (registrationPrices[dataProvider] > 0) {
             _idPrice = registrationPrices[dataProvider];
         } else {
             _idPrice = registrationPrice;
         }
+    }
+
+    /**
+    * @dev Function to get address status
+    * @param _dataProviderAddress Address of data provider.
+    * @param _id Not needed.
+    */
+    function getPurchaseStatus(address _dataProviderAddress, bytes32 _id) external view returns (bool permission) {
+        permission = isRegister[_dataProviderAddress];
     }
     
     /**
@@ -165,7 +175,7 @@ contract DataProviderRegistry is Ownable, IPriceable {
     returns (bytes32 registerId) {
         totalProvider = totalProvider.add(1);
         providersList[_dataProviderAddress] = msg.sender;
-        registerId = bytes32(_dataProviderAddress);
+        registerId = bytes32(bytes20(_dataProviderAddress));
         emit RegisterDataProviderLog(registerId, msg.sender, _dataProviderAddress);
     }
 
@@ -173,13 +183,13 @@ contract DataProviderRegistry is Ownable, IPriceable {
     * @dev Function to pay registration. Can only call by Hara TOken Contract.
     * @param _txReceipt Transaction Receipt.
     */
-    function buy(uint256 _txReceipt) onlyHart returns (bool success) {
+    function buy(uint256 _txReceipt) public onlyHart returns (bool success) {
         address dataProviderOwner;
         address seller;
         bytes32 id;
         uint256 value;
         (dataProviderOwner, seller, id, value) = buyMechanism.getReceipt(_txReceipt);
-        address dataProvider = address(id);
+        address dataProvider = address(bytes20(id));
         isRegister[dataProvider] = true;
         providerBalances[dataProvider] = providerBalances[dataProvider].add(value);
         
@@ -195,8 +205,10 @@ contract DataProviderRegistry is Ownable, IPriceable {
         isRegister[_dataProviderAddress] = false;
         totalProvider = totalProvider.sub(1);
         address dataProviderOwner = providersList[_dataProviderAddress];
-        require(hart.transfer(dataProviderOwner, providerBalances[_dataProviderAddress]), "Refund failed");
-        providerBalances[_dataProviderAddress] = providerBalances[_dataProviderAddress].sub(providerBalances[_dataProviderAddress]);
+        uint256 valueRefund = providerBalances[_dataProviderAddress];
+        providerBalances[_dataProviderAddress] = 
+            providerBalances[_dataProviderAddress].sub(providerBalances[_dataProviderAddress]);
+        require(hart.transfer(dataProviderOwner, valueRefund), "Refund failed");
         emit RemoveDataProviderLog(_dataProviderAddress, providerBalances[_dataProviderAddress]);
     }
 }

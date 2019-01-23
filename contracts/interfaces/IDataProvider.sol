@@ -1,4 +1,5 @@
-pragma solidity 0.4.25;
+pragma solidity ^0.5.2;
+
 
 /**
  * @title Data Provider Interface
@@ -6,6 +7,6 @@ pragma solidity 0.4.25;
  */
 contract IDataProvider {
 
-    function getUri(string _locationId, string _priceId, string _buyer) external view returns (string uri);
+    function getUri(string calldata _locationId, string calldata _priceId, string calldata _buyer) external view returns (string memory uri);
 
 }

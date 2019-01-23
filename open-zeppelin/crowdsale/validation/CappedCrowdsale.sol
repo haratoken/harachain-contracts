@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "../../math/SafeMath.sol";
 import "../Crowdsale.sol";
@@ -16,7 +16,7 @@ contract CappedCrowdsale is Crowdsale {
      * @dev Constructor, takes maximum amount of wei accepted in the crowdsale.
      * @param cap Max amount of wei to be contributed
      */
-    constructor (uint256 cap) internal {
+    constructor (uint256 cap) public {
         require(cap > 0);
         _cap = cap;
     }

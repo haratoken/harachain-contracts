@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 
 /**
@@ -8,7 +8,7 @@ pragma solidity ^0.4.25;
 interface IBuyable {
 
     // events
-    event BoughtLog(address buyer, address seller, bytes32 id, uint256 value);
+    event BoughtLog(address indexed buyer, address indexed seller, bytes32 indexed id, uint256 value);
     
     function getPurchaseStatus(address buyer, bytes32 id) external view returns (bool permission);
 
