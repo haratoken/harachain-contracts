@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "../../math/SafeMath.sol";
 import "../Crowdsale.sol";
@@ -26,8 +26,8 @@ contract TimedCrowdsale is Crowdsale {
      * @param openingTime Crowdsale opening time
      * @param closingTime Crowdsale closing time
      */
-    constructor (uint256 openingTime, uint256 closingTime) internal {
-        // solium-disable-next-line security/no-block-members
+    constructor (uint256 openingTime, uint256 closingTime) public {
+        // solhint-disable-next-line not-rely-on-time
         require(openingTime >= block.timestamp);
         require(closingTime > openingTime);
 
@@ -53,7 +53,7 @@ contract TimedCrowdsale is Crowdsale {
      * @return true if the crowdsale is open, false otherwise.
      */
     function isOpen() public view returns (bool) {
-        // solium-disable-next-line security/no-block-members
+        // solhint-disable-next-line not-rely-on-time
         return block.timestamp >= _openingTime && block.timestamp <= _closingTime;
     }
 
@@ -62,7 +62,7 @@ contract TimedCrowdsale is Crowdsale {
      * @return Whether crowdsale period has elapsed
      */
     function hasClosed() public view returns (bool) {
-        // solium-disable-next-line security/no-block-members
+        // solhint-disable-next-line not-rely-on-time
         return block.timestamp > _closingTime;
     }
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 
 /**
@@ -8,8 +8,8 @@ pragma solidity ^0.4.25;
 interface IPriceable {
     
     // events
-    event PriceChangedLog(bytes32 id, uint oldValue, uint256 newValue);
-    event SaleLog(address sellerAddress, bytes32 id, bool saleStatus);
+    event PriceChangedLog(bytes32 indexed id, uint oldValue, uint256 newValue);
+    event SaleLog(address indexed sellerAddress, bytes32 id, bool saleStatus);
 
     // functions
     function setPrice(bytes32 _id, uint256 _value) external;

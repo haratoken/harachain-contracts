@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./IERC721.sol";
 import "./IERC721Receiver.sol";
@@ -30,7 +30,7 @@ contract ERC721 is ERC165, IERC721 {
     // Mapping from owner to operator approvals
     mapping (address => mapping (address => bool)) private _operatorApprovals;
 
-    bytes4 private constant _InterfaceId_ERC721 = 0x80ac58cd;
+    bytes4 private constant _INTERFACE_ID_ERC721 = 0x80ac58cd;
     /*
      * 0x80ac58cd ===
      *     bytes4(keccak256('balanceOf(address)')) ^
@@ -46,7 +46,7 @@ contract ERC721 is ERC165, IERC721 {
 
     constructor () public {
         // register the supported interfaces to conform to ERC721 via ERC165
-        _registerInterface(_InterfaceId_ERC721);
+        _registerInterface(_INTERFACE_ID_ERC721);
     }
 
     /**
@@ -147,7 +147,6 @@ contract ERC721 is ERC165, IERC721 {
      * @param tokenId uint256 ID of the token to be transferred
     */
     function safeTransferFrom(address from, address to, uint256 tokenId) public {
-        // solium-disable-next-line arg-overflow
         safeTransferFrom(from, to, tokenId, "");
     }
 
@@ -163,9 +162,8 @@ contract ERC721 is ERC165, IERC721 {
      * @param tokenId uint256 ID of the token to be transferred
      * @param _data bytes data to send along with a safe transfer check
      */
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes _data) public {
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public {
         transferFrom(from, to, tokenId);
-        // solium-disable-next-line arg-overflow
         require(_checkOnERC721Received(from, to, tokenId, _data));
     }
 
@@ -188,9 +186,6 @@ contract ERC721 is ERC165, IERC721 {
      */
     function _isApprovedOrOwner(address spender, uint256 tokenId) internal view returns (bool) {
         address owner = ownerOf(tokenId);
-        // Disable solium check because of
-        // https://github.com/duaraghav8/Solium/issues/175
-        // solium-disable-next-line operator-whitespace
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
     }
 
@@ -202,7 +197,11 @@ contract ERC721 is ERC165, IERC721 {
      */
     function _mint(address to, uint256 tokenId) internal {
         require(to != address(0));
-        _addTokenTo(to, tokenId);
+        require(!_exists(tokenId));
+
+        _tokenOwner[tokenId] = to;
+        _ownedTokensCount[to] = _ownedTokensCount[to].add(1);
+
         emit Transfer(address(0), to, tokenId);
     }
 
@@ -214,8 +213,13 @@ contract ERC721 is ERC165, IERC721 {
      * @param tokenId uint256 ID of the token being burned
      */
     function _burn(address owner, uint256 tokenId) internal {
+        require(ownerOf(tokenId) == owner);
+
         _clearApproval(tokenId);
-        _removeTokenFrom(owner, tokenId);
+
+        _ownedTokensCount[owner] = _ownedTokensCount[owner].sub(1);
+        _tokenOwner[tokenId] = address(0);
+
         emit Transfer(owner, address(0), tokenId);
     }
 
@@ -226,33 +230,6 @@ contract ERC721 is ERC165, IERC721 {
      */
     function _burn(uint256 tokenId) internal {
         _burn(ownerOf(tokenId), tokenId);
-    }
-
-    /**
-     * @dev Internal function to add a token ID to the list of a given address
-     * Note that this function is left internal to make ERC721Enumerable possible, but is not
-     * intended to be called by custom derived contracts: in particular, it emits no Transfer event.
-     * @param to address representing the new owner of the given token ID
-     * @param tokenId uint256 ID of the token to be added to the tokens list of the given address
-     */
-    function _addTokenTo(address to, uint256 tokenId) internal {
-        require(_tokenOwner[tokenId] == address(0));
-        _tokenOwner[tokenId] = to;
-        _ownedTokensCount[to] = _ownedTokensCount[to].add(1);
-    }
-
-    /**
-     * @dev Internal function to remove a token ID from the list of a given address
-     * Note that this function is left internal to make ERC721Enumerable possible, but is not
-     * intended to be called by custom derived contracts: in particular, it emits no Transfer event,
-     * and doesn't clear approvals.
-     * @param from address representing the previous owner of the given token ID
-     * @param tokenId uint256 ID of the token to be removed from the tokens list of the given address
-     */
-    function _removeTokenFrom(address from, uint256 tokenId) internal {
-        require(ownerOf(tokenId) == from);
-        _ownedTokensCount[from] = _ownedTokensCount[from].sub(1);
-        _tokenOwner[tokenId] = address(0);
     }
 
     /**
@@ -285,7 +262,9 @@ contract ERC721 is ERC165, IERC721 {
      * @param _data bytes optional data to send along with the call
      * @return whether the call correctly returned the expected magic value
      */
-    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes _data) internal returns (bool) {
+    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory _data)
+        internal returns (bool)
+    {
         if (!to.isContract()) {
             return true;
         }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "../Crowdsale.sol";
 import "../../token/ERC20/ERC20Mintable.sol";
@@ -9,8 +9,6 @@ import "../../token/ERC20/ERC20Mintable.sol";
  * Token ownership should be transferred to MintedCrowdsale for minting.
  */
 contract MintedCrowdsale is Crowdsale {
-    constructor () internal {}
-
     /**
      * @dev Overrides delivery by minting tokens upon purchase.
      * @param beneficiary Token purchaser

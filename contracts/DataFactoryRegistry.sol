@@ -1,7 +1,9 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./interfaces/IDataFactory.sol";
+
+
 /**
  * @title DataFactoryRegistry
  * @dev contract that will create data contract.
@@ -18,8 +20,9 @@ contract DataFactoryRegistry is Ownable {
     mapping(address=>address[]) internal ownerDataAddress;
     
     // events
-    event DataFactoryAddressChangedLog(address who, address oldAddress, address newAddress);
-    event PercentageChanged(string who, uint8 oldPercentage, uint8 newPercentage);
+    event DataFactoryAddressChangedLog(address indexed who, address indexed oldAddress, address indexed newAddress);
+    // who: 0 => hara, 1=> data provider
+    event PercentageChanged(uint8 indexed who, uint8 indexed oldPercentage, uint8 indexed newPercentage);
 
     /**
     * @dev Constructor keep contract owner.
@@ -29,9 +32,9 @@ contract DataFactoryRegistry is Ownable {
         haraAddress = msg.sender;
         dataFactory = IDataFactory(_dataFactoryAddress);
         haraPercentage = 15;
-        emit PercentageChanged("Hara", 0, haraPercentage);
+        emit PercentageChanged(0, 0, haraPercentage);
         dataProviderPercentage = 5;
-        emit PercentageChanged("DataProvider", 0, dataProviderPercentage);
+        emit PercentageChanged(1, 0, dataProviderPercentage);
     }
 
     /**
@@ -47,11 +50,11 @@ contract DataFactoryRegistry is Ownable {
         if (_who == 0) {     
             oldPercentage = haraPercentage;       
             haraPercentage = _percentageRatio;
-            emit PercentageChanged("Hara", oldPercentage, haraPercentage);        
+            emit PercentageChanged(0, oldPercentage, haraPercentage);        
         } else if (_who == 1) {
             oldPercentage = dataProviderPercentage;
             dataProviderPercentage = _percentageRatio;
-            emit PercentageChanged("DataProvider", oldPercentage, dataProviderPercentage);
+            emit PercentageChanged(1, oldPercentage, dataProviderPercentage);
         } else {
             revert("Percentage type is not exists. Use 0 for hara percentage or 1 for data provider percentage");
         }
@@ -81,15 +84,15 @@ contract DataFactoryRegistry is Ownable {
     * @param _location Location of data.
     * @param _signature Signature of data.
     */
-    function storeData(
+    function storeData2(
         address _owner, 
         address _location, 
-        bytes _signature
+        bytes memory _signature
         )
     public
     returns (address dataStoreContract)
     {   
-        dataStoreContract = dataFactory.storeData(_owner, _location, _signature);
+        dataStoreContract = dataFactory.storeData2(_owner, _location, _signature);
         ownerDataAddress[_owner].push(dataStoreContract);
     }
     
@@ -103,8 +106,8 @@ contract DataFactoryRegistry is Ownable {
     function storeData(
         address _owner, 
         address _location,
-        bytes _signature, 
-        bytes _signatureFunc)
+        bytes memory _signature, 
+        bytes memory _signatureFunc)
     public
     returns (address dataStoreContract)
     {  

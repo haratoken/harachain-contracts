@@ -40,7 +40,7 @@ contract('DataProviderRegistry', accounts => {
     assert.strictEqual(contractOwner, owner);
   });
 
-  it('can not add editor by not owner', async function () {
+  it('can not add auditor by not owner', async function () {
     await expectRevert(
       dataProviderRegistry.addAuditor(auditor1, {
         from: notOwner
@@ -48,7 +48,7 @@ contract('DataProviderRegistry', accounts => {
     );
   });
 
-  it('can add editor by owner', async function () {
+  it('can add auditor by owner', async function () {
     await dataProviderRegistry.addAuditor(auditor1, {
       from: owner
     });
@@ -115,7 +115,7 @@ contract('DataProviderRegistry', accounts => {
     });
 
     it('can set price without data provider by owner', async function () {
-      var reciept = await dataProviderRegistry.setPrice(web3.utils.toWei("1"), {
+      var reciept = await dataProviderRegistry.setPriceDefault(web3.utils.toWei("1"), {
         from: owner
       });
       var log = reciept.logs[0];
@@ -149,7 +149,7 @@ contract('DataProviderRegistry', accounts => {
       var log = reciept.logs[0];
       assert.strictEqual(log.event, "RegisterDataProviderLog");
       assert.strictEqual(log.args.__length__, 3);
-      assert.strictEqual(log.args.registerId, web3.utils.padLeft(dataProvider.address.toLowerCase(), 64));
+      assert.strictEqual(log.args.registerId, web3.utils.padRight(dataProvider.address.toLowerCase(), 64));
       assert.strictEqual(log.args.by, dataProvider1);
       assert.strictEqual(log.args.dataProvider, dataProvider.address);
 
@@ -162,10 +162,10 @@ contract('DataProviderRegistry', accounts => {
       });
 
       const RegisterCompletedLog = encoderDecoder.decodeLogsByTopic(logs.DataProviderRegistry.RegisterCompletedLogTopic,
-        logs.DataProviderRegistry.RegisterCompletedLogAbi, receipt.receipt.logs)[0];
-      assert.strictEqual(receipt.receipt.logs.length, 5);
+        logs.DataProviderRegistry.RegisterCompletedLogAbi, receipt.receipt.rawLogs)[0];
+      assert.strictEqual(receipt.receipt.rawLogs.length, 5);
       assert.strictEqual(RegisterCompletedLog.__length__, 3);
-      assert.strictEqual(RegisterCompletedLog.registerId, web3.utils.padLeft(dataProvider.address, 64).toLowerCase());
+      assert.strictEqual(RegisterCompletedLog.registerId, web3.utils.padRight(dataProvider.address, 64).toLowerCase());
       assert.strictEqual(RegisterCompletedLog.by, dataProvider1);
       assert.strictEqual(RegisterCompletedLog.feeValue.toString(), web3.utils.toWei("1").toString());
 
@@ -206,7 +206,6 @@ contract('DataProviderRegistry', accounts => {
       var reciept = await dataProviderRegistry.removeDataProvider(dataProvider.address, {
         from: owner
       });
-      console.log(reciept);
       var log = reciept.logs[0];
 
       var dataProviderStatus = await dataProviderRegistry.isRegister(dataProvider.address);

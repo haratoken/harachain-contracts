@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 
 /**
@@ -6,6 +6,6 @@ pragma solidity ^0.4.25;
  * @dev 
  */
 interface IBuyMechanism {
-    function getReceipt(uint256 _txReceiptId)   external view
+    function getReceipt(uint256 _txReceiptId) external view
     returns (address buyer, address seller, bytes32 id, uint256 value);
 }

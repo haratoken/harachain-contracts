@@ -1,10 +1,11 @@
 const DataFactoryContract = artifacts.require('DataFactory');
 const DataStoreContract = artifacts.require('DataStore');
 const HaraToken = artifacts.require('HaraTokenPrivate');
-const encoderDecoder = require("./helpers/encoderDecoder")
-const expectRevert = require("./helpers/expectRevert")
-const expectContractNotExists = require("./helpers/expectContractNotExists")
 
+const encoderDecoder = require("./helpers/encoderDecoder");
+const expectRevert = require("./helpers/expectRevert");
+const expectContractNotExists = require("./helpers/expectContractNotExists");
+const logsDetail = require("./helpers/LogsHelper");
 
 contract('DataFactory', accounts => {
 let datafactory;
@@ -23,28 +24,8 @@ const notOwner = accounts[2];
 const owner = accounts[3]; // hart owner
 const otherDataOwner1 = accounts[4];
 
-const DataCreationLogTopic = "0xba4eef7a56e3b8bee912b9f8f83435cf9021729f21d02a5abc46aa90e0940305";
-const DataCreationLogAbi = [{
-  "indexed": false,
-  "name": "contractDataAddress",
-  "type": "address"
-}, {
-  "indexed": false,
-  "name": "owner",
-  "type": "address"
-}, {
-  "indexed": false,
-  "name": "location",
-  "type": "address"
-}, {
-  "indexed": false,
-  "name": "signature",
-  "type": "bytes"
-}, {
-  "indexed": false,
-  "name": "signatureFunc",
-  "type": "bytes"
-}];
+const DataCreationLogTopic = logsDetail.DataFactory.DataCreationLogTopic;
+const DataCreationLogAbi = logsDetail.DataFactory.DataCreationLogAbi;
 
 before(async function () {
   // deploy hara token contract
@@ -55,7 +36,7 @@ before(async function () {
     from: owner,
     gas: 4700000
   });
-  initHartAddress = hart.addrress;
+  initHartAddress = hart.options.address;
 
   await hart.methods.mint(owner, web3.utils.toWei("1000")).send({
     from: owner
@@ -76,7 +57,7 @@ describe('create data store contract with signature function', async function ()
         from: dataOwner
       }
     );
-    const logs = receipt.receipt.logs
+    const logs = receipt.receipt.rawLogs
     const DataCreationLog = encoderDecoder.decodeLogsByTopic(DataCreationLogTopic, DataCreationLogAbi, logs)[0];
     datastore1 = await DataStoreContract.at(DataCreationLog.contractDataAddress);
   });
@@ -111,14 +92,14 @@ describe('create data store contract with signature function', async function ()
 
 describe('create data store contract without signature function', async function () {
   before(async function () {
-    var receipt = await datafactory.storeData(
+    var receipt = await datafactory.storeData2(
       otherDataOwner1,
       initLocation,
       web3.utils.asciiToHex(initSignature), {
         from: otherDataOwner1
       }
     );
-    const logs = receipt.receipt.logs
+    const logs = receipt.receipt.rawLogs
     const DataCreationLog = encoderDecoder.decodeLogsByTopic(DataCreationLogTopic, DataCreationLogAbi, logs)[0];
     datastore2 = await DataStoreContract.at(DataCreationLog.contractDataAddress);
   });

@@ -9,7 +9,7 @@ services:
     image: contracts:dev
     environment:
     - DEVELOPMENT_HOST=${DEVELOPMENT_HOST}
-    command: bash -c "ls && truffle test --network development"
+    command: bash -c "truffle test --network development"
     depends_on:
     - ganache
     volumes:

@@ -1,9 +1,9 @@
-pragma solidity 0.4.25;
-// pragma experimental ABIEncoderV2;
+pragma solidity ^0.5.2;
 
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./../open-zeppelin/math/SafeMath.sol";
 import "./interfaces/IPriceable.sol";
+import "./interfaces/IBuyMechanism.sol";
 
 contract Order is Ownable {
     using SafeMath for uint256;
@@ -12,20 +12,21 @@ contract Order is Ownable {
     struct OrderDetail {
         address sellerAddress;
         bytes32 id;
-      }
+    }
     // storage
     // buyable hart
-    mapping(address=>mapping(uint256=>OrderDetail[])) internal orderTransaction;
+    mapping(address=>mapping(uint256=>OrderDetail[])) public orderTransaction;
     mapping(address=>uint256) public isActive; 
     uint256 public orderId;
     mapping(uint256=>mapping(address=>mapping(bytes32=>bool))) public addedSellerOrder;
     mapping(bytes32=>bool) public sellerAddressBloom;
-    
+    IBuyMechanism buyMechanism;
+
     //event
-    event OrderCreated(address buyer, uint256 orderId);
-    event OrderAdded(uint256 orderId, address sellerAddress, bytes32 version);
-    event OrderAlreadyExists(uint256 orderId, address sellerAddress, bytes32 version);
-    event OrderCancelled(uint256 orderId, address by);
+    event OrderCreated(address indexed buyer, uint256 indexed orderId, bytes32 paymentId);
+    event OrderAdded(uint256 indexed orderId, address indexed sellerAddress, bytes32 version);
+    event OrderAlreadyExists(uint256 indexed orderId, address indexed sellerAddress, bytes32 version);
+    event OrderCancelled(uint256 indexed orderId, address by);
     
     //modifier
     modifier notActiveOrder() {
@@ -43,32 +44,32 @@ contract Order is Ownable {
     * @param _sellers Sellers of data to order.
     * @param _versions Version of data to order.
     */
-    modifier checkOrderDetailsLength(address[] _sellers, bytes32[] _versions) {
+    modifier checkOrderDetailsLength(address[] memory _sellers, bytes32[] memory _versions) {
         require(_sellers.length == _versions.length, "Sellers length is not same with versions length");
         _;
     }
 
     //constructor
-    constructor()
+    constructor(address _hartAddress)
     public {
-        
+        buyMechanism = IBuyMechanism(_hartAddress);
     }
     
     function createOrder() public notActiveOrder {
         orderId = orderId.add(1);
         orderTransaction[msg.sender][orderId];
         isActive[msg.sender] = orderId;
-        emit OrderCreated(msg.sender, orderId);
+        emit OrderCreated(msg.sender, orderId, bytes32(orderId));
     }
     
-    function createOrder(address[] _sellers, bytes32[] _versions) public notActiveOrder checkOrderDetailsLength(_sellers, _versions) {
+    function createandAddOrder(address[] memory _sellers, bytes32[] memory _versions) public notActiveOrder checkOrderDetailsLength(_sellers, _versions) {
         createOrder();
         for (uint i = 0; i < _sellers.length; i++) {
             _addOrder(msg.sender, orderId, _sellers[i], _versions[i]);
         }
     }
     
-    function addOrder(uint256 _orderId, address[] _sellers, bytes32[] _versions) public onlyOrderOwner(_orderId) checkOrderDetailsLength(_sellers, _versions){
+    function addOrder(uint256 _orderId, address[] memory _sellers, bytes32[] memory _versions) public onlyOrderOwner(_orderId) checkOrderDetailsLength(_sellers, _versions){
         for (uint i = 0; i < _sellers.length; i++) {
             _addOrder(msg.sender, _orderId, _sellers[i], _versions[i]);
         }
@@ -89,6 +90,7 @@ contract Order is Ownable {
         if (addedSellerOrder[_orderId][_seller][_version] == false) {
             OrderDetail memory detail = OrderDetail(_seller, _version);
             orderTransaction[_buyer][_orderId].push(detail);
+            orderTransaction[_buyer][_orderId].length = orderTransaction[_buyer][_orderId].length.add(1);
             addedSellerOrder[_orderId][_seller][_version] = true;
             sellerAddressBloom[keccak256(abi.encodePacked(_orderId, _seller, _version))] = true;
             emit OrderAdded(_orderId, _seller, _version);
@@ -97,23 +99,72 @@ contract Order is Ownable {
         }
     }
 
-    function getTotalInvoce(uint256 _orderId) public view returns (uint256 total) {
-        for (uint _id = 0; _id < orderTransaction[msg.sender][_orderId].length; _id++) {
-            IPriceable data = IPriceable(orderTransaction[msg.sender][_orderId][_id].sellerAddress);
-            total.add(data.getPrice(orderTransaction[msg.sender][_orderId][_id].id));
-        }
+    function getTotalInvoice(uint256 _orderId) public view returns (uint total) {
+        // for (uint _id = 0; _id < orderTransaction[msg.sender][_orderId].length; _id++) {
+        // address dataAddress = orderTransaction[msg.sender][_orderId][0].sellerAddress;
+        //     // IPriceable data = IPriceable(orderTransaction[msg.sender][_orderId][_id].sellerAddress);
+        //     // total = total.add(data.getPrice(orderTransaction[msg.sender][_orderId][_id].id));
+            // total = total.add(1);
+        // a = dataAddress;
+        // }
+        // OrderDetail memory z = orderTransaction[msg.sender][_orderId][0];
+        total = orderTransaction[msg.sender][_orderId].length;
+        // total = 12;
+        // total = orderTransaction[msg.sender][_orderId].length;
+        // total = addedSellerOrder[_orderId].length;
+        // total = orderTransaction[msg.sender][_orderId][0];
+        // total = z.sellerAddress;
     }
     
-    function buy(uint256 _orderId) public {
-        for (uint _id = 0; _id < orderTransaction[msg.sender][_orderId].length; _id++) {
+    // function buy(uint256 _orderId) public {
+    //     for (uint _id = 0; _id < orderTransaction[msg.sender][_orderId].length; _id++) {
+    //         // IPriceable data = IPriceable(orderTransaction[msg.sender][_orderId][_id].sellerAddress);
+    //         // total.add(data.getPrice(orderTransaction[msg.sender][_orderId][_id].id));
+    //         // beli data
+    //         // set yg ini udah kebeli
+    //         // emit
+    //     }
+    // }
+    //buy function
+    // function buy
+    // function get total invoice
+
+    function buy(uint256 _txReceipt) external returns (bool) {
+        address buyer;
+        address seller;
+        bytes32 id;
+        uint256 value;
+        (buyer, seller, id, value) = buyMechanism.getReceipt(_txReceipt);
+        uint256 _id = uint256(id);
+
+
+        // for (uint _id = 0; _id < orderTransaction[msg.sender][_orderId].length; _id++) {
             // IPriceable data = IPriceable(orderTransaction[msg.sender][_orderId][_id].sellerAddress);
             // total.add(data.getPrice(orderTransaction[msg.sender][_orderId][_id].id));
             // beli data
             // set yg ini udah kebeli
             // emit
+        // }
+        // purchaseStatus[buyer][id] = true;
+        // emit BoughtLog(buyer, seller, id, value);
+
+        // uint256 forHara = getPercentage(value, dataFactory.getPercentage(0));
+        // uint256 forDataProvider = getPercentage(value, dataFactory.getPercentage(1));
+        // require(hart.transfer(location, forDataProvider), "Payment to Data Provider failed");
+        // require(hart.transfer(dataFactory.haraAddress(), forHara), "Payment to Hara failed");
+        return true;
+    }
+
+    function getPrice(bytes32 _id) external view  returns (uint256 _idPrice) {
+        // _idPrice = getTotalInvoice(uint256(_id));
+        _idPrice = 12;
+    }
+
+    function isSale(bytes32 _id) external view returns (bool _saleStatus) {
+        if (isActive[msg.sender] == uint256(_id)) {
+            _saleStatus = true;
+        } else {
+            _saleStatus = false;
         }
     }
-    //buy function
-    // function buy
-    // function get total invoice
 }

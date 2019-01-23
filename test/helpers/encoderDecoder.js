@@ -7,7 +7,11 @@ module.exports.stringToBytes32 = function (string) {
     var decoded = [];
     for (i in logs) {
       if (logs[i].topics[0] == topic) {
-        var a = web3.eth.abi.decodeLog(inputAbi, logs[i].data, logs[i].topics);
+        if (logs[i].topics.length == 1) {
+          var a = web3.eth.abi.decodeLog(inputAbi, logs[i].data, logs[i].topics);
+        } else {
+          var a = web3.eth.abi.decodeLog(inputAbi, logs[i].data, logs[i].topics.slice(1));
+        }
         decoded.push(a);
       }
     }

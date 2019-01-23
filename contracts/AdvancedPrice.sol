@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 import "./interfaces/IPriceable.sol";
 import "./../open-zeppelin/ownership/Ownable.sol";
@@ -10,11 +10,11 @@ import "./../open-zeppelin/ownership/Ownable.sol";
  */
 contract AdvancedPrice is IPriceable, Ownable {
     // storage
-    mapping(bytes32=>uint256) price;
-    address dataAddress;
+    mapping(bytes32=>uint256) internal price;
+    address public dataAddress;
     
     // events
-    event PriceAddressChangedLog(address by, address oldAddress, address newAddress);
+    event PriceAddressChangedLog(address indexed by, address indexed oldAddress, address indexed newAddress);
 
     //modifier
     modifier onlyData() {
@@ -26,7 +26,7 @@ contract AdvancedPrice is IPriceable, Ownable {
     public {
         dataAddress = _dataAddress;
     }
-    
+
     /**
     * @dev Function to set price of specific price Id. Only owner of item can call this function.
     * @param _id Price id of item.
@@ -34,6 +34,15 @@ contract AdvancedPrice is IPriceable, Ownable {
     */
     function setPrice(bytes32 _id, uint256 _value) external onlyData {
         price[_id] = _value;
+    }
+
+    /**
+    * @dev Function to get sale status of specific price Id.
+    * @param _id Price id of item.
+    * @return Boolean of sale status. True means on sale.
+    */
+    function isSale(bytes32 _id)  external view returns (bool _saleStatus) {
+        return true;
     }
 
     /**
@@ -56,20 +65,11 @@ contract AdvancedPrice is IPriceable, Ownable {
     }
 
     /**
-    * @dev Function to get sale status of specific price Id.
-    * @param _id Price id of item.
-    * @return Boolean of sale status. True means on sale.
-    */
-    function isSale(bytes32 _id)  external view returns (bool _saleStatus){
-        return true;
-    }
-
-    /**
     * @dev function to destroy contract
     */
     function kill() 
     public
     onlyOwner {
-        selfdestruct(owner());
+        selfdestruct(address(uint160(owner())));
     }
 }

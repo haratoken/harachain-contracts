@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.5.2;
 
 import "./interfaces/IBuyable.sol";
 import "./interfaces/IPriceable.sol";
@@ -471,6 +471,8 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     
     uint256 public nonce;
     mapping (uint8 => mapping(uint256 => bool)) public mintStatus;
+    bool public isMintPause;
+    address public mintPauseAddress;
 
     // token transaction related storage
     struct Receipt { 
@@ -490,12 +492,13 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     event BurnRequestLog(uint256 indexed id, address indexed burner, uint256 value, bytes32 hashDetails, string data);
     event BurnLog(uint256 indexed id, address indexed burner, uint256 value, bytes32 hashDetails, string data);
     event MintLog(uint256 indexed id, address indexed requester, uint256 value, bool status);
-    event PaidLog(address from, address to, uint256 value);
-    event ReceiptCreatedLog(uint256 receiptId, address buyer, address seller, bytes32 id, uint256 value);
-    event ItemBoughtLog(uint256 receiptId, address buyer, address seller, bytes32 id, uint256 value);
-    event TransferFeeChanged(uint256 oldFee, uint256 newFee, address modifierFee);
-    event TransferFeeRecipientChanged(address oldRecipient, address newRecipient, address modifierRecipient);
-    event FeeTransferedLog(address to, uint256 amountOfFee);
+    event PaidLog(address indexed from, address indexed to, uint256 indexed value);
+    event ReceiptCreatedLog(uint256 indexed receiptId, address indexed buyer, address indexed seller, bytes32 id, uint256 value);
+    event ItemBoughtLog(uint256 indexed receiptId, address indexed buyer, address indexed seller, bytes32 id, uint256 value);
+    event TransferFeeChanged(uint256 indexed oldFee, uint256 indexed newFee, address indexed modifierFee);
+    event TransferFeeRecipientChanged(address indexed oldRecipient, address indexed newRecipient, address indexed modifierRecipient);
+    event FeeTransferedLog(address indexed to, uint256 indexed amountOfFee);
+    event MintPauseChangedLog(address indexed mintPauseAddress, bool indexed status, address by);
     
     /**
     * @dev Modifier to check if an address have enough value to pay
@@ -511,8 +514,24 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @dev Modifier to check if value to transfer more than transfer fee
     * @param value value of token transfer.
     */
-    modifier valueMoreThanFee(uint256 value){
+    modifier valueMoreThanFee(uint256 value) {
         require(value > transferFee, "value must be more than transfer fee");
+        _;
+    }
+
+    /**
+    * @dev Modifier to check if mint is pause.
+    */
+    modifier mintIsNotPause() {
+        require(isMintPause == false, "mint is on pause status");
+        _;
+    }
+
+    /**
+    * @dev Modifier to check if mint is pause.
+    */
+    modifier onlyAllowedMintPauseAddress() {
+        require(msg.sender == mintPauseAddress, "can only change by mint pause address");
         _;
     }
 
@@ -523,108 +542,6 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
         emit TransferFeeRecipientChanged(address(0), msg.sender, msg.sender);
     }
 
-    /**
-   * @dev Function to set transfer fee
-   * @param feeValue new fee value
-   */
-    function setTransferFee(uint feeValue) onlyOwner public {
-        uint256 oldValue = transferFee;
-        transferFee = feeValue;
-        emit TransferFeeChanged(oldValue, transferFee, msg.sender);
-    }
-
-    /**
-   * @dev Function to set new transfer recipient
-   * @param newRecipient new recipient ro recieved transfer fee
-   */
-    function setTransferRecipient(address newRecipient) onlyOwner public {
-        address oldRecipient = transferFeeRecipient;
-        transferFeeRecipient = newRecipient;
-        emit TransferFeeRecipientChanged(oldRecipient, transferFeeRecipient, msg.sender);
-    }
-
-    /**
-    * @dev Function to burn tokens
-    * @param value The amount of tokens to burn.
-    * @param data String of description.
-    */
-    function doBurnToken(uint256 value, string data) private {
-        burn(value);
-        emit BurnLog(nonce, msg.sender, value, hashDetails(nonce, msg.sender, value, HART_NETWORK_ID), data);
-        nonce = nonce.add(1);
-    }
-
-    /**
-    * @dev Function to burn tokens with transfer fee
-    * @param value The amount of tokens to burn.
-    * @param data String of description.
-    */
-    function burnToken(uint256 value, string data) valueMoreThanFee(value) public {
-        emit BurnRequestLog(nonce, msg.sender, value, hashDetails(nonce, msg.sender, value, HART_NETWORK_ID), data);
-        require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
-        emit FeeTransferedLog(transferFeeRecipient, transferFee);
-        doBurnToken(value.sub(transferFee), data);
-    }
-
-    /**
-    * @dev Function to burn tokens with transfer fee
-    * @param value The amount of tokens to burn.
-    */
-    function burnToken(uint256 value) valueMoreThanFee(value) public {
-        require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
-        doBurnToken(value.sub(transferFee), "");
-    }
-
-    /**
-    * @dev Function to mint tokens
-    * @param id The unique burn ID.
-    * @param requester The address that will receive the minted tokens.
-    * @param value The amount of tokens to mint.
-    * @param hash Generated hash from burn function.
-    * @return A boolean that indicates if the operation was successful.
-    */
-    function mintToken(uint256 id, address requester, uint256 value, bytes32 hash, uint8 from) public returns(bool) {
-        require(mintStatus[from][id]==false, "id already requested for mint");
-        bytes32 hashInput = hashDetails(id, requester, value, from);
-        require(hashInput == hash, "request item are not valid");
-        bool status = mint(requester, value);
-        emit MintLog(id, requester, value, status);
-        mintStatus[from][id] = status;
-        return status;
-    }
-
-    /**
-    * @dev Function to buy item with hart.
-    * @param seller Seller address where the item recorded.
-    * @param id Id of item to buy.
-    * @param value The amount of tokens to pay the item.
-    * @param buyer Buyer address.
-    */
-    function buy(address seller, bytes32 id, uint256 value, address buyer) public haveEnoughToken(buyer, value){
-        IPriceable itemPrice = IPriceable(seller);
-        require(itemPrice.isSale(id) == true, "Item is not on sale");
-        require(value >= itemPrice.getPrice(id), "Value underpriced");
-        require(transfer(seller, value), "Payment failed");
-        emit PaidLog(msg.sender, seller, value);
-        
-        receiptNonce = receiptNonce.add(1);
-        txReceipt[receiptNonce] = Receipt(msg.sender, seller, id, value);
-        emit ReceiptCreatedLog(receiptNonce, msg.sender, seller, id, value);
-        
-        IBuyable item = IBuyable(seller);
-        require(item.buy(receiptNonce), "Buy proccess failed");
-        emit ItemBoughtLog(receiptNonce, msg.sender, seller, id, value);
-    }
-
-    /**
-    * @dev Function to buy item with hart.
-    * @param seller Seller address where the item recorded.
-    * @param id Id of item to buy.
-    * @param value The amount of tokens to pay the item.
-    */
-    function buy(address seller, bytes32 id, uint256 value) public haveEnoughToken(msg.sender, value){
-        buy(seller, id, value, msg.sender);
-    }
     /**
     * @dev Function to get reciept from certain transaction receipt id.
     * @param _txReceiptId Transaction receipt ID to know the details.
@@ -640,6 +557,119 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     }
 
     /**
+   * @dev Function to set transfer fee
+   * @param feeValue new fee value
+   */
+    function setTransferFee(uint feeValue) public onlyOwner {
+        uint256 oldValue = transferFee;
+        transferFee = feeValue;
+        emit TransferFeeChanged(oldValue, transferFee, msg.sender);
+    }
+
+    /**
+   * @dev Function to set new transfer recipient
+   * @param newRecipient new recipient ro recieved transfer fee
+   */
+    function setTransferRecipient(address newRecipient) public onlyOwner {
+        address oldRecipient = transferFeeRecipient;
+        transferFeeRecipient = newRecipient;
+        emit TransferFeeRecipientChanged(oldRecipient, transferFeeRecipient, msg.sender);
+    }
+
+    /**
+    * @dev Function to burn tokens with transfer fee
+    * @param value The amount of tokens to burn.
+    * @param data String of description.
+    */
+    function burnToken(uint256 value, string memory data) public valueMoreThanFee(value) {
+        emit BurnRequestLog(nonce, msg.sender, value, hashDetails(nonce, msg.sender, value, HART_NETWORK_ID), data);
+        require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
+        emit FeeTransferedLog(transferFeeRecipient, transferFee);
+        doBurnToken(value.sub(transferFee), data);
+    }
+
+    /**
+    * @dev Function to burn tokens with transfer fee
+    * @param value The amount of tokens to burn.
+    */
+    function burnToken(uint256 value) public valueMoreThanFee(value) {
+        require(transfer(transferFeeRecipient, transferFee), "transfer fee failed");
+        doBurnToken(value.sub(transferFee), "");
+    }
+
+    /**
+    * @dev Function to mint tokens
+    * @param id The unique burn ID.
+    * @param requester The address that will receive the minted tokens.
+    * @param value The amount of tokens to mint.
+    * @param hash Generated hash from burn function.
+    * @return A boolean that indicates if the operation was successful.
+    */
+    function mintToken(uint256 id, address requester, uint256 value, bytes32 hash, uint8 from) 
+    public mintIsNotPause returns(bool) {
+        require(mintStatus[from][id] == false, "id already requested for mint");
+        bytes32 hashInput = hashDetails(id, requester, value, from);
+        require(hashInput == hash, "request item are not valid");
+        bool status = mint(requester, value);
+        emit MintLog(id, requester, value, status);
+        mintStatus[from][id] = status;
+        return status;
+    }
+
+    /**
+    * @dev Function to buy item with hart.
+    * @param seller Seller address where the item recorded.
+    * @param id Id of item to buy.
+    * @param value The amount of tokens to pay the item.
+    * @param buyer Buyer address.
+    */
+    function buy(address seller, bytes32 id, uint256 value, address buyer) public haveEnoughToken(buyer, value) {
+        IPriceable itemPrice = IPriceable(seller);
+        IBuyable item = IBuyable(seller);
+        require(itemPrice.isSale(id) == true, "Item is not on sale");
+        require(value >= itemPrice.getPrice(id), "Value underpriced");
+        require(item.getPurchaseStatus(buyer, id) == false, "Item already purchased.");
+
+        receiptNonce = receiptNonce.add(1);
+        txReceipt[receiptNonce] = Receipt(msg.sender, seller, id, value);
+        emit ReceiptCreatedLog(receiptNonce, msg.sender, seller, id, value);
+
+        require(transfer(seller, value), "Payment failed");
+        emit PaidLog(msg.sender, seller, value);
+        
+        require(item.buy(receiptNonce), "Buy proccess failed");
+        emit ItemBoughtLog(receiptNonce, msg.sender, seller, id, value);
+    }
+
+    /**
+    * @dev Function to buy item with hart.
+    * @param seller Seller address where the item recorded.
+    * @param id Id of item to buy.
+    * @param value The amount of tokens to pay the item.
+    */
+    function buy(address seller, bytes32 id, uint256 value) public haveEnoughToken(msg.sender, value) {
+        buy(seller, id, value, msg.sender);
+    }
+
+    /**
+    * @dev Function to buy item with hart.
+    * @param status Is mint pause status.
+    */
+    function setIsMintPause(bool status) public onlyAllowedMintPauseAddress {
+        isMintPause = status;
+        emit MintPauseChangedLog(mintPauseAddress, isMintPause, msg.sender);
+    }
+
+    /**
+    * @dev Function to buy item with hart.
+    * @param newAddress New address who can set mint pause status.
+    */
+    function setMintPauseAddress(address newAddress) public onlyOwner {
+        mintPauseAddress = newAddress;
+        emit MintPauseChangedLog(mintPauseAddress, isMintPause, msg.sender);
+    }
+
+    /**
     * @dev Function to hash burn and mint details.
     * @param id The unique burn ID.
     * @param burner The address that will receive the minted tokens.
@@ -647,7 +677,19 @@ contract HaraTokenPrivate is IBuyMechanism, BurnableToken, CappedToken(120000000
     * @param hartNetworkID hart network id
     * @return bytes32 from keccak256 hash of inputs.
     */
-    function hashDetails(uint256 id, address burner, uint256 value, uint8 hartNetworkID) internal pure returns (bytes32) {
+    function hashDetails(uint256 id, address burner, uint256 value, uint8 hartNetworkID) 
+    internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(id, burner, value, hartNetworkID));
-    }   
+    }
+    
+    /**
+    * @dev Function to burn tokens
+    * @param value The amount of tokens to burn.
+    * @param data String of description.
+    */
+    function doBurnToken(uint256 value, string memory data) private {
+        burn(value);
+        emit BurnLog(nonce, msg.sender, value, hashDetails(nonce, msg.sender, value, HART_NETWORK_ID), data);
+        nonce = nonce.add(1);
+    }
 }
