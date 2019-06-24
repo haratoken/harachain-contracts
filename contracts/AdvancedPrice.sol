@@ -2,38 +2,54 @@ pragma solidity ^0.5.2;
 
 import "./interfaces/IPriceable.sol";
 import "./../open-zeppelin/ownership/Ownable.sol";
+import "./../open-zeppelin/math/SafeMath.sol";
+
+
+interface SpecialPrice {
+    function getPrice(uint256 _basePrice) external view returns (uint256 finalPrice);
+}
 
 
 /**
  * @title AdvancedPrice
- * @dev [WIP] Example contract of advanced pricing. Waiting the requirement.
+ * @dev Pricing with exchange rate.
  */
 contract AdvancedPrice is IPriceable, Ownable {
-    // storage
-    mapping(bytes32=>uint256) internal price;
-    address public dataAddress;
+    using SafeMath for uint256;
+    // // storage
+    mapping(address => mapping(bytes32 => uint256)) public basePrice;
+    SpecialPrice public priceType;
     
     // events
-    event PriceAddressChangedLog(address indexed by, address indexed oldAddress, address indexed newAddress);
+    event PriceTypeChangedLog(address indexed by, address indexed oldAddress, address indexed newAddress);
 
-    //modifier
-    modifier onlyData() {
-        require(msg.sender == dataAddress, "Can only be acessed by data contract address");
-        _;
-    }
-
-    constructor(address _dataAddress)
+    // constructor
+    constructor(address _priceTypeAddress)
     public {
-        dataAddress = _dataAddress;
+        setPriceType(_priceTypeAddress);
     }
 
     /**
-    * @dev Function to set price of specific price Id. Only owner of item can call this function.
+    * @dev Function to set base price of specific price Id.
     * @param _id Price id of item.
     * @param _value Value of item.
     */
-    function setPrice(bytes32 _id, uint256 _value) external onlyData {
-        price[_id] = _value;
+    function setPrice(bytes32 _id, uint256 _value) external {
+        uint256 _oldValue = basePrice[msg.sender][_id];
+        basePrice[msg.sender][_id] = _value;
+        emit PriceChangedLog(address(this), _id, _oldValue, _value);
+    }
+
+    /**
+    * @dev Function to get price of specific price Id.
+    * @param _id Price id of item.
+    * @return Uint256 of price.
+    */
+    function getPrice(bytes32 _id) external view returns (uint256 idPrice) {
+        require(basePrice[msg.sender][_id] != 0, "base price must be set");
+        uint256 _basePrice = basePrice[msg.sender][_id];
+        idPrice = priceType.getPrice(_basePrice);
+        // get price panggil priceTypeAddress(_baseprice)
     }
 
     /**
@@ -45,23 +61,16 @@ contract AdvancedPrice is IPriceable, Ownable {
         return true;
     }
 
-    /**
-    * @dev Function to get price of specific price Id.
-    * @param _id Price id of item.
-    * @return Uint256 of price.
-    */
-    function getPrice(bytes32 _id) external view  returns (uint256 idPrice) {        
-        idPrice = this.getPrice(_id, msg.sender);
-    }
+
 
     /**
-    * @dev Function to get price of specific price Id.
-    * @param _id Price id of item.
-    * @param _data Address.
-    * @return Uint256 of price.
+    * @dev Function to set price type contract address. Only owner of contract can call this function.
+    * @param _newAddress Contract address for price type, example ExchangeRate Contract.
     */
-    function getPrice(bytes32 _id, address _data) public view  returns (uint256 idPrice) {
-        idPrice = price[_id];
+    function setPriceType(address _newAddress) public onlyOwner {
+        address oldAddress = address(priceType);
+        priceType = SpecialPrice(_newAddress);
+        emit PriceTypeChangedLog(msg.sender, oldAddress, address(priceType));
     }
 
     /**

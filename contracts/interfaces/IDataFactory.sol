@@ -14,9 +14,9 @@ interface IDataFactory {
         address location, bytes signature, bytes signatureFunc
     );    
    
-    function storeData2(address _owner, address _location, bytes calldata _signature) external 
+    function storeData2(address _owner, address _location, bytes calldata _signature, address _dataFactoryR) external 
     returns (address dataStoreContract);
     
-    function storeData(address _owner, address _location, bytes calldata _signature, bytes calldata _signatureFunc) external 
+    function storeData(address _owner, address _location, bytes calldata _signature, bytes calldata _signatureFunc, address _dataFactoryR) external 
     returns (address dataStoreContract);
 }

@@ -25,12 +25,17 @@ contract('DataFactoryRegistry', accounts => {
   const notOwner = accounts[2];
   const owner = accounts[3]; // hart owner
   const otherDataOwner1 = accounts[4];
+  const allowedAddress1 = accounts[5];
+  const allowedAddress2 = accounts[6];
 
   const DataCreationLogTopic = logsDetail.DataFactory.DataCreationLogTopic;
   const DataCreationLogAbi = logsDetail.DataFactory.DataCreationLogAbi;
 
   const DataFactoryAddressChangedLogTopic = logsDetail.DataFactoryRegistry.DataFactoryAddressChangedLogTopic;
   const DataFactoryAddressChangedLogAbi = logsDetail.DataFactoryRegistry.DataFactoryAddressChangedLogAbi;
+
+  const AllowedAddressLogTopic = logsDetail.DataFactoryRegistry.AllowedAddressLogTopic;
+  const AllowedAddressLogAbi = logsDetail.DataFactoryRegistry.AllowedAddressLogAbi;
 
   before(async function () {
     // deploy hara token contract
@@ -78,14 +83,91 @@ contract('DataFactoryRegistry', accounts => {
     assert.strictEqual(percent.toString(), datafactory.address);
   });
 
+  describe('add allowed address to restrict store data only for registered data ', async function () {
+    it('can\'t store data ifdata provider not set', async function () {
+      await expectRevert(
+        datafactoryregistry.storeData(
+          dataOwner,
+          initLocation,
+          web3.utils.asciiToHex(initSignature),
+          web3.utils.asciiToHex(initSignatureFunc), {
+            from: dataOwner
+          }
+        )
+      );
+    });
+
+    it('add allowed address to store data by owner', async function () {
+      var receipt = await datafactoryregistry.addAllowedAddress(allowedAddress1, {
+        from: factoryRegistryOwner
+      });
+
+      const logs = receipt.receipt.rawLogs
+      const log = encoderDecoder.decodeLogsByTopic(AllowedAddressLogTopic, AllowedAddressLogAbi, logs)[0];
+      assert.strictEqual(log.who, allowedAddress1);
+      assert.strictEqual(log.isAllowed, true);
+      assert.strictEqual(log.by, factoryRegistryOwner);
+
+      var addressIsAllowed = await datafactoryregistry.allowedAddressToStore(allowedAddress1);
+      assert.strictEqual(addressIsAllowed, true);
+      assert.notEqual(addressIsAllowed, false);
+    });
+
+    it('can not add allowed address to store data by not owner', async function () {
+      await expectRevert(
+        datafactoryregistry.addAllowedAddress(allowedAddress2, {
+          from: notOwner
+        }));
+
+      var addressIsAllowed = await datafactoryregistry.allowedAddressToStore(allowedAddress2);
+      assert.strictEqual(addressIsAllowed, false);
+      assert.notEqual(addressIsAllowed, true);
+    });
+
+    it('can not remove allowed address to store data by not owner', async function () {
+      await expectRevert(
+        datafactoryregistry.removeAllowedAddress(allowedAddress1, {
+          from: notOwner
+        }));
+
+      var addressIsAllowed = await datafactoryregistry.allowedAddressToStore(allowedAddress1);
+      assert.strictEqual(addressIsAllowed, true);
+      assert.notEqual(addressIsAllowed, false);
+    });
+
+    it('remove allowed address to store data by owner', async function () {
+      var receipt = await datafactoryregistry.removeAllowedAddress(allowedAddress1, {
+        from: factoryRegistryOwner
+      });
+
+      const logs = receipt.receipt.rawLogs
+      const log = encoderDecoder.decodeLogsByTopic(AllowedAddressLogTopic, AllowedAddressLogAbi, logs)[0];
+      assert.strictEqual(log.who, allowedAddress1);
+      assert.strictEqual(log.isAllowed, false);
+      assert.strictEqual(log.by, factoryRegistryOwner);
+
+      var addressIsAllowed = await datafactoryregistry.allowedAddressToStore(allowedAddress1);
+      assert.strictEqual(addressIsAllowed, false);
+      assert.notEqual(addressIsAllowed, true);
+
+    });
+
+
+  });
+
   describe('create data store contract with signature function', async function () {
     before(async function () {
+      // add allowed address 
+      await datafactoryregistry.addAllowedAddress(allowedAddress1, {
+        from: factoryRegistryOwner
+      });
+
       var receipt = await datafactoryregistry.storeData(
         dataOwner,
         initLocation,
         web3.utils.asciiToHex(initSignature),
         web3.utils.asciiToHex(initSignatureFunc), {
-          from: dataOwner
+          from: allowedAddress1
         }
       );
       const logs = receipt.receipt.rawLogs
@@ -106,17 +188,17 @@ contract('DataFactoryRegistry', accounts => {
     });
 
     it('store data location', async function () {
-      var dataLocation = await datastore1.location();
+      var dataLocation = await datastore1.getLocation();
       assert.strictEqual(dataLocation, initLocation);
     });
 
     it('store data signature', async function () {
-      var dataSignature = await datastore1.signature();
+      var dataSignature = await datastore1.getSignature();
       assert.strictEqual(web3.utils.hexToAscii(dataSignature), initSignature);
     });
 
     it('store data signature function', async function () {
-      var dataSignatureFunc = await datastore1.signatureFunc();
+      var dataSignatureFunc = await datastore1.getSignatureFunction();
       assert.strictEqual(web3.utils.hexToAscii(dataSignatureFunc), initSignatureFunc);
     });
   });
@@ -127,7 +209,7 @@ contract('DataFactoryRegistry', accounts => {
         otherDataOwner1,
         initLocation,
         web3.utils.asciiToHex(initSignature), {
-          from: otherDataOwner1
+          from: allowedAddress1
         }
       );
       const logs = receipt.receipt.rawLogs
@@ -148,17 +230,17 @@ contract('DataFactoryRegistry', accounts => {
     });
 
     it('store data location', async function () {
-      var dataLocation = await datastore2.location();
+      var dataLocation = await datastore2.getLocation();
       assert.strictEqual(dataLocation, initLocation);
     });
 
     it('store data signature', async function () {
-      var dataSignature = await datastore2.signature();
+      var dataSignature = await datastore2.getSignature();
       assert.strictEqual(web3.utils.hexToAscii(dataSignature), initSignature);
     });
 
     it('store data signature function', async function () {
-      var dataSignatureFunc = await datastore2.signatureFunc();
+      var dataSignatureFunc = await datastore2.getSignatureFunction();
       assert.strictEqual(web3.utils.hexToAscii(dataSignatureFunc), initSignatureFunc);
     });
   });

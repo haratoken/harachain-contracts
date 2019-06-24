@@ -8,8 +8,8 @@ pragma solidity ^0.5.2;
 interface IWithdrawable {
 
     // events
-    event WithdrawnLog(address indexed to, address indexed seller, uint256 value);
+    event WithdrawnLog(address indexed to, address indexed from, uint256 value);
     
     // functions
-    function withdrawSales(address _to, uint256 _value) external;
+    function withdraw(address _to, uint256 _value) external;
 }

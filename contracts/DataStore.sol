@@ -1,45 +1,29 @@
 pragma solidity ^0.5.2;
 
-import "./BasicMarketItem.sol";
-import "./interfaces/IBuyMechanism.sol";
+import "./../open-zeppelin/ownership/Ownable.sol";
 import "./DataFactoryRegistry.sol";
 
-import "./../open-zeppelin/token/ERC20/ERC20.sol";
-import "./../open-zeppelin/math/SafeMath.sol";
 
 /**
  * @title DataStore
  * @dev contract that store all data information.
  */
 
-contract DataStore is BasicMarketItem {    
+contract DataStore is Ownable {    
 
-    using SafeMath for uint256;
-
-    // storage
-    address public priceAddress;
-    mapping(bytes32=>uint256) internal price;
-
-    mapping(bytes32=>bool) internal saleStatus;
     mapping(address=>mapping(bytes32=>bool)) private purchaseStatus;
-
-    DataFactoryRegistry private dataFactory;
-    IBuyMechanism private buyMechanism;
-    ERC20 private hart;
-    address public hartAddress;
-
-    address public dataOwner;
-    bytes public signature;
-    bytes public signatureFunc; 
-    address public location; 
+    bytes private signature;
+    bytes private signatureFunc; 
+    address private location; 
     mapping(bytes32=>bytes32) public metadata;
+    DataFactoryRegistry public dataFactory;
     
     
     // events
     event DataLog(address indexed owner, address location, bytes signature, bytes signatureFunc);
     event DataUpdateLog(string indexed dataType, bool dataValid);
     event MetadataLog(bytes32 indexed keyMetadata, bytes32 valueMetadata);
-    event PriceAddressChangedLog(address indexed by, address oldAddress, address newAddress);
+    // event DexAddressChanged(address newDexAddress, address by);
 
     //modifiers
     /**
@@ -53,10 +37,11 @@ contract DataStore is BasicMarketItem {
     }
 
     /**
-    * @dev Modifier to check if function called by hara token contract address.
+    * @dev Modifier to check if function called by Dex contract address.
     */
-    modifier onlyHart() {
-        require(msg.sender == hartAddress, "Can only accesed by Hart.");
+    modifier onlyDex() {
+        address dexAddress = dataFactory.dexAddress();
+        require(msg.sender == dexAddress, "Can only accesed by Dex.");
         _;
     }
 
@@ -66,68 +51,31 @@ contract DataStore is BasicMarketItem {
     * @param _location Location of data.
     * @param _signature Signature of data.
     * @param _signatureFunc Signature function of data.
-    * @param _hartAddress Address of hara token contract.
+    * @param _dfRegistryAddress Address of DataFactory Registry Contract.
     */
     constructor(
         address _owner, 
         address _location, 
         bytes memory _signature, 
         bytes memory _signatureFunc,
-        address _hartAddress,
-        address _dataFactoryRegistryAddress
+        address _dfRegistryAddress
         )    
-    public
-    BasicMarketItem(_owner) {
-        dataOwner = _owner;
+    public {
         signature = _signature;
         signatureFunc = _signatureFunc;
         location = _location;
-        dataFactory = DataFactoryRegistry(_dataFactoryRegistryAddress);
         emit DataLog(_owner, _location, _signature, _signatureFunc);
-        buyMechanism = IBuyMechanism(_hartAddress);
-        hart = ERC20(_hartAddress);
-        hartAddress = _hartAddress;
-    }
-    
-    /**
-    * @dev Function to set price of specific price Id. Only owner of item can call this function.
-    * @param _id Price id of item.
-    * @param _value Value of item.
-    */
-    function setPrice(bytes32 _id, uint256 _value) external onlyOwner {
-        uint256 _oldValue;
-        if (priceAddress == address(0)) {
-            _oldValue = price[_id];
-            price[_id] = _value;
-        } else {
-            IPriceable priceContract = IPriceable(priceAddress);
-            _oldValue = priceContract.getPrice(_id);
-            priceContract.setPrice(_id, _value);
-        }
-        emit PriceChangedLog(_id, _oldValue, _value);
-    }
-
-    /**
-    * @dev Function to get price of specific price Id.
-    * @param _id Price id of item.
-    * @return Uint256 of price.
-    */
-    function getPrice(bytes32 _id) external view  returns (uint256 idPrice) {
-        if (priceAddress == address(0)) {
-            idPrice = price[_id];
-        } else {
-            IPriceable priceContract = IPriceable(priceAddress);
-            idPrice = priceContract.getPrice(_id);
-        }
+        dataFactory = DataFactoryRegistry(_dfRegistryAddress);
+        transferOwnership(_owner);
     }
 
     /**
     * @dev Function to get purchase status of buyer for specific item id
-    * @param _buyer Buyer to get purchase status
     * @param _id Price id item to get purchase status.
+    * @param _buyer Buyer to get purchase status
     */
     function getPurchaseStatus(address _buyer, bytes32 _id) external view returns (bool permission) {
-        if (_buyer == dataOwner) {
+        if (_buyer == owner()) {
             permission = true;
         } else {
             permission = purchaseStatus[_buyer][_id];
@@ -135,12 +83,20 @@ contract DataStore is BasicMarketItem {
     }
 
     /**
-    * @dev Function to get sale status of specific price Id.
-    * @param _id Price id of item.
-    * @return Boolean of sale status. True means on sale.
+    * @dev Function set purchase status of specific data version.
+    * @param _id version of data.
+    * @param _buyer Buyer of data.
+    * @param _status buyr purchase status of data.
     */
-    function isSale(bytes32 _id)  external view returns (bool _saleStatus) {
-        _saleStatus = saleStatus[_id];
+    function setPurchaseStatus(
+        bytes32 _id, 
+        address _buyer,
+        bool _status
+        ) 
+        external
+        onlyDex
+        {
+        purchaseStatus[_buyer][_id] = _status;
     }
 
     /**
@@ -149,7 +105,7 @@ contract DataStore is BasicMarketItem {
     * @param _metadataDetails Value of new information.
     */
     function setMetadata(bytes32 _metadataType, bytes32 _metadataDetails)
-    public
+    external
     onlyOwner    
     {
         metadata[_metadataType] = _metadataDetails;
@@ -188,58 +144,53 @@ contract DataStore is BasicMarketItem {
     returns(bytes32) {
         return metadata[_dataType];
     }
-    
+
     /**
-    * @dev Function to set price address of item.
-    * @param _newAddress New price address.
+    * @dev Function to get location address of data.
+    * @return Address of location contract.
+    * 
     */
-    function setPriceAddress(address _newAddress) public onlyOwner {
-        address oldAddress = priceAddress;
-        priceAddress = _newAddress;
-        emit PriceAddressChangedLog(msg.sender, oldAddress, _newAddress);
+    function getLocation() 
+    external
+    view 
+    returns(address payable) {
+        return address(uint160(address(location)));
     }
 
     /**
-    * @dev Function to set sale status of specific price Id. Only owner of item can call this function.
-    * @param _id Price id of item.
-    * @param _saleStatus Sale status of specific item price Id. True means on sale.
+    * @dev Function toget signature function of data.
+    * @return Bytes of signature function hash.
+    * 
     */
-    function setSale(bytes32 _id, bool _saleStatus) public onlyOwner {
-        saleStatus[_id] = _saleStatus;
-        emit SaleLog(address(this), _id, _saleStatus);
+    function getSignatureFunction() 
+    external
+    view 
+    returns(bytes memory) {
+        return signatureFunc;
     }
 
     /**
-    * @dev Function to withdraw sales token. Only owner can call this function.
-    * @param _to Address destination to transfer the sales token.
-    * @param _value Value of token to withdraw.
+    * @dev Function to get signature of data.
+    * @return Bytes of data signature.
+    * 
     */
-    function withdrawSales(address _to, uint256 _value) public onlyOwner {
-        require(hart.balanceOf(address(this)) >= _value, "Your sales is less than value you want to withdraw");
-        require(hart.transfer(_to, _value), "Failed to withdraw sales");
-        emit WithdrawnLog(_to, address(this), _value);
+    function getSignature() 
+    external
+    view 
+    returns(bytes memory) {
+        return signature;
     }
 
     /**
-    * @dev Function to buy item from transaction receipt. 
-           Only hara token contract address can call this function.
-    * @param _txReceipt Transaction receipt of buy proccess.
-    * @return Boolean of buy status.
+    * @dev Function to get owner of data.
+    * @return Address of owner.
+    * 
     */
-    function buy(uint256 _txReceipt) public onlyHart returns (bool) {
-        address buyer;
-        address seller;
-        bytes32 id;
-        uint256 value;
-        (buyer, seller, id, value) = buyMechanism.getReceipt(_txReceipt);
-        purchaseStatus[buyer][id] = true;
-        emit BoughtLog(buyer, seller, id, value);
-
-        uint256 forHara = getPercentage(value, dataFactory.getPercentage(0));
-        uint256 forDataProvider = getPercentage(value, dataFactory.getPercentage(1));
-        require(hart.transfer(location, forDataProvider), "Payment to Data Provider failed");
-        require(hart.transfer(dataFactory.haraAddress(), forHara), "Payment to Hara failed");
-        return true;
+    function getOwner() 
+    external
+    view 
+    returns(address) {
+        return owner();
     }
 
     /**
@@ -249,15 +200,5 @@ contract DataStore is BasicMarketItem {
     public
     onlyOwner() {
         selfdestruct(address(uint160(owner())));
-    }
-    
-    /**
-    * @dev function get get value percentage of hart.
-    * @param _number Hart.
-    * @param _percent Percent to calculate.
-    * @return Result of calculation.
-    */
-    function getPercentage(uint256 _number, uint256 _percent) internal pure returns(uint256 result) {
-        result = _number.mul(_percent) / 100;
     }
 }

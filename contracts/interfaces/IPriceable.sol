@@ -8,7 +8,7 @@ pragma solidity ^0.5.2;
 interface IPriceable {
     
     // events
-    event PriceChangedLog(bytes32 indexed id, uint oldValue, uint256 newValue);
+    event PriceChangedLog(address indexed itemAddress, bytes32 indexed id, uint256 oldValue, uint256 newValue);
     event SaleLog(address indexed sellerAddress, bytes32 id, bool saleStatus);
 
     // functions

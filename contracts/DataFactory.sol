@@ -27,18 +27,20 @@ contract DataFactory is Ownable, IDataFactory {
     * @param _owner Data owner.
     * @param _location Location of data.
     * @param _signature Signature of data.
+    * @param _dataFactoryR Address of DataFactoryRegistry.
     */
     function storeData2(
         address _owner, 
         address _location, 
-        bytes memory _signature
+        bytes memory _signature,
+        address _dataFactoryR
         )
     public
     returns (address dataStoreContractAddress)
     {   
         DataStore dataStoreContract = new DataStore(
             _owner, _location,
-            _signature, "keccak", hartAddress, address(this));
+            _signature, "keccak", _dataFactoryR);
         dataStoreContractAddress = address(dataStoreContract);
         emit DataCreationLog(dataStoreContractAddress, _owner, _location, _signature, "keccak");
     }
@@ -49,17 +51,19 @@ contract DataFactory is Ownable, IDataFactory {
     * @param _location Location of data.
     * @param _signature Signature of data.
     * @param _signatureFunc Signature function of data.
+    * @param _dataFactoryR Address of DataFactoryRegistry.
     */
     function storeData(
         address _owner, 
         address _location,
         bytes memory _signature, 
-        bytes memory _signatureFunc)
+        bytes memory _signatureFunc,
+        address _dataFactoryR)
     public
     returns (address dataStoreContractAddress) {   
         DataStore dataStoreContract = new DataStore(
             _owner, _location,
-            _signature, _signatureFunc, hartAddress, address(this));
+            _signature, _signatureFunc, _dataFactoryR);
         dataStoreContractAddress = address(dataStoreContract);
         emit DataCreationLog(dataStoreContractAddress, _owner, _location, _signature, _signatureFunc);
     }
