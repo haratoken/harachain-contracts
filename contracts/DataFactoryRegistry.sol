@@ -16,14 +16,26 @@ contract DataFactoryRegistry is Ownable {
     uint8 public dataProviderPercentage;
 
     address public haraAddress;
+    address public dexAddress;
 
     mapping(address=>address[]) internal ownerDataAddress;
+    mapping(address=>bool) public allowedAddressToStore;
     
     // events
     event DataFactoryAddressChangedLog(address indexed who, address indexed oldAddress, address indexed newAddress);
+    event AllowedAddressLog(address indexed who, bool indexed isAllowed, address indexed by);
     // who: 0 => hara, 1=> data provider
     event PercentageChanged(uint8 indexed who, uint8 indexed oldPercentage, uint8 indexed newPercentage);
+    event DexAddressChanged(address newAddress);
 
+    /**
+    * @dev Modifier to check if function called by hart contract.
+    */
+    modifier onlyAllowedAddress() {
+        require(allowedAddressToStore[msg.sender] == true, "Can only called by allowed address.");
+        _;
+    }
+    
     /**
     * @dev Constructor keep contract owner.
     */
@@ -90,9 +102,10 @@ contract DataFactoryRegistry is Ownable {
         bytes memory _signature
         )
     public
+    onlyAllowedAddress
     returns (address dataStoreContract)
     {   
-        dataStoreContract = dataFactory.storeData2(_owner, _location, _signature);
+        dataStoreContract = dataFactory.storeData2(_owner, _location, _signature, address(this));
         ownerDataAddress[_owner].push(dataStoreContract);
     }
     
@@ -109,9 +122,10 @@ contract DataFactoryRegistry is Ownable {
         bytes memory _signature, 
         bytes memory _signatureFunc)
     public
+    onlyAllowedAddress
     returns (address dataStoreContract)
     {  
-        dataStoreContract = dataFactory.storeData(_owner, _location, _signature, _signatureFunc);
+        dataStoreContract = dataFactory.storeData(_owner, _location, _signature, _signatureFunc, address(this));
         ownerDataAddress[_owner].push(dataStoreContract);
 
     }
@@ -127,6 +141,17 @@ contract DataFactoryRegistry is Ownable {
         address oldDataFactoryAddress = address(dataFactory);
         dataFactory = IDataFactory(_dataFactoryAddress);
         emit DataFactoryAddressChangedLog(msg.sender, oldDataFactoryAddress, _dataFactoryAddress);
+    }
+     /**
+    * @dev Function to set Dex address to use.
+    * @param _dexAddress The address to set.
+    */
+    function setDexAddress(address _dexAddress) 
+    public 
+    onlyOwner
+    {
+        dexAddress = _dexAddress;
+        emit DexAddressChanged(dexAddress);
     }
 
     /**
@@ -153,5 +178,25 @@ contract DataFactoryRegistry is Ownable {
     returns (address)
     {
         return ownerDataAddress[_owner][_index];
+    }
+
+    /**
+    * @dev Function to add allowed address to store data.
+    * @param _address Address to add.
+    */
+    function addAllowedAddress(address _address) public onlyOwner 
+    {
+        allowedAddressToStore[_address] = true;
+        emit AllowedAddressLog(_address, allowedAddressToStore[_address], msg.sender);
+    }
+
+    /**
+    * @dev Function to remove add allowed address to store data.
+    * @param _address Address to remove.
+    */
+    function removeAllowedAddress(address _address) public onlyOwner 
+    {
+        allowedAddressToStore[_address] = false;
+        emit AllowedAddressLog(_address, allowedAddressToStore[_address], msg.sender);
     }
 }

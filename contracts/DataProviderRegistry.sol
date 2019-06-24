@@ -10,8 +10,8 @@ import "./../open-zeppelin/token/ERC20/ERC20.sol";
 
 
 /**
- * @title DataProviderHara
- * @dev Data provider contract by hara.
+ * @title DataProviderRegistry
+ * @dev Registry of Data Provider. 
  */
 contract DataProviderRegistry is Ownable, IPriceable, IBuyable {
     using SafeMath for uint256;
@@ -93,7 +93,7 @@ contract DataProviderRegistry is Ownable, IPriceable, IBuyable {
         uint256 _oldValue;
         _oldValue = registrationPrices[dataProvider];
         registrationPrices[dataProvider] = _value;
-        emit PriceChangedLog(_id, _oldValue, _value);
+        emit PriceChangedLog(address(this), _id, _oldValue, _value);
     }
 
     /**
@@ -104,7 +104,7 @@ contract DataProviderRegistry is Ownable, IPriceable, IBuyable {
         uint256 _oldValue;
         _oldValue = registrationPrice;
         registrationPrice = _value;
-        emit PriceChangedLog("Price", _oldValue, _value);
+        emit PriceChangedLog(address(this), "Price", _oldValue, _value);
     }
     
     /**

@@ -1,4 +1,3 @@
-
 module.exports = {
   networks: {
     development: {
@@ -8,33 +7,26 @@ module.exports = {
       gas: 4700000
     },
     coverage: {
-      host: 'localhost',
-      network_id: '*', // eslint-disable-line camelcase
+      host: "localhost",
+      network_id: "*", // eslint-disable-line camelcase
       port: 8555,
       gas: 0xfffffffffff,
-      gasPrice: 0x01,
-    },
-    // rinkeby: {
-    //   provider: function() { 
-    //            return new HDWalletProvider(mnemonic, process.env.RINKEBY_HOST) 
-    //          },
-    //   network_id: 4,
-    //   gas: 4700000,
-    //   from: process.env.ADDRESS
-    // },
+      gasPrice: 0x01
+    }
   },
   solc: {
-    version: "0.5.2",    
+    version: "0.5.2",
     optimizer: {
-     enabled: true,
-     runs: 200
-   }
- },
- mocha: {  
-  reporter: "spec",
-  reporter: "mocha-junit-reporter", 
-  reporterOptions: {  
-    mochaFile: "coverage/testresults.xml"
-  }  
-},
+      enabled: true,
+      runs: 200
+    }
+  },
+  mocha: {
+    reporter: "spec",
+    reporter: "mocha-junit-reporter",
+    reporterOptions: {
+      mochaFile: "coverage/testresults.xml"
+    }
+  },
+  plugins: ["truffle-security"]
 };

@@ -23,6 +23,7 @@ const dataOwner = accounts[1];
 const notOwner = accounts[2];
 const owner = accounts[3]; // hart owner
 const otherDataOwner1 = accounts[4];
+const dataFactoryRegistryAddr = accounts[5];
 
 const DataCreationLogTopic = logsDetail.DataFactory.DataCreationLogTopic;
 const DataCreationLogAbi = logsDetail.DataFactory.DataCreationLogAbi;
@@ -53,7 +54,8 @@ describe('create data store contract with signature function', async function ()
       dataOwner,
       initLocation,
       web3.utils.asciiToHex(initSignature),
-      web3.utils.asciiToHex(initSignatureFunc), {
+      web3.utils.asciiToHex(initSignatureFunc), 
+      dataFactoryRegistryAddr, {
         from: dataOwner
       }
     );
@@ -75,17 +77,17 @@ describe('create data store contract with signature function', async function ()
   });
 
   it('store data location', async function () {
-    var dataLocation = await datastore1.location();
+    var dataLocation = await datastore1.getLocation();
     assert.strictEqual(dataLocation, initLocation);
   });
 
   it('store data signature', async function () {
-    var dataSignature = await datastore1.signature();
+    var dataSignature = await datastore1.getSignature();
     assert.strictEqual(web3.utils.hexToAscii(dataSignature), initSignature);
   });
 
   it('store data signature function', async function () {
-    var dataSignatureFunc = await datastore1.signatureFunc();
+    var dataSignatureFunc = await datastore1.getSignatureFunction();
     assert.strictEqual(web3.utils.hexToAscii(dataSignatureFunc), initSignatureFunc);
   });
 });
@@ -95,7 +97,8 @@ describe('create data store contract without signature function', async function
     var receipt = await datafactory.storeData2(
       otherDataOwner1,
       initLocation,
-      web3.utils.asciiToHex(initSignature), {
+      web3.utils.asciiToHex(initSignature), 
+      dataFactoryRegistryAddr, {
         from: otherDataOwner1
       }
     );
@@ -117,17 +120,17 @@ describe('create data store contract without signature function', async function
   });
 
   it('store data location', async function () {
-    var dataLocation = await datastore2.location();
+    var dataLocation = await datastore2.getLocation();
     assert.strictEqual(dataLocation, initLocation);
   });
 
   it('store data signature', async function () {
-    var dataSignature = await datastore2.signature();
+    var dataSignature = await datastore2.getSignature();
     assert.strictEqual(web3.utils.hexToAscii(dataSignature), initSignature);
   });
 
   it('store data signature function', async function () {
-    var dataSignatureFunc = await datastore2.signatureFunc();
+    var dataSignatureFunc = await datastore2.getSignatureFunction();
     assert.strictEqual(web3.utils.hexToAscii(dataSignatureFunc), initSignatureFunc);
   });
 });
