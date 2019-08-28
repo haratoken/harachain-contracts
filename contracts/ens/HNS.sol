@@ -11,12 +11,12 @@ contract HNSRegistry is ENS {
 
     struct Record {
         address owner;
-        address resolver;
         uint64 ttl;
     }
 
     mapping (bytes32 => Record) records;
     address public activeRegistrar;
+    address public activeResolver;
 
     // Permits modifications only by the owner of the specified node
     modifier ownerOnly(bytes32 _node) {
@@ -26,14 +26,9 @@ contract HNSRegistry is ENS {
 
     // Permits modifications only by the owner of the specified node if active registrar not specified.
     // only active registrar address if active registar specified.
-    modifier registrarOnly(bytes32 _node) {
-        if(activeRegistrar!=address(0)){
-            require(activeRegistrar == msg.sender, "Can only be accesed by registar");
-            _;
-        } else {
-            require(records[_node].owner == msg.sender, "Can only be accesed by owner");
-            _;
-        }
+    modifier registrarOnly() {
+        require(activeRegistrar == msg.sender, "Can only be accesed by registar");
+        _;
     }
 
     event RegistrarChanged(address oldRegistrar, address newRegistrar);
@@ -71,7 +66,7 @@ contract HNSRegistry is ENS {
      * @param _label The hash of the label specifying the subnode.
      * @param _owner The address of the new owner.
      */
-    function setSubnodeOwner(bytes32 _node, bytes32 _label, address _owner) external registrarOnly(_node) {
+    function setSubnodeOwner(bytes32 _node, bytes32 _label, address _owner) external registrarOnly() {
         bytes32 subnode = keccak256(abi.encodePacked(_node, _label));
         emit NewOwner(_node, _label, _owner);
         records[subnode].owner = _owner;
@@ -79,12 +74,12 @@ contract HNSRegistry is ENS {
 
     /**
      * @dev Sets the resolver address for the specified node.
-     * @param _node The node to update.
+     * @param _node The node to update. Not in use.
      * @param _resolver The address of the resolver.
      */
-    function setResolver(bytes32 _node, address _resolver) external ownerOnly(_node) {
-        emit NewResolver(_node, _resolver);   
-        records[_node].resolver = _resolver;
+    function setResolver(bytes32 _node, address _resolver) external ownerOnly(0x0) {
+        emit NewResolver("", _resolver);   
+        activeResolver = _resolver;
     }
 
     /**
@@ -108,11 +103,11 @@ contract HNSRegistry is ENS {
 
     /**
      * @dev Returns the address of the resolver for the specified node.
-     * @param _node The specified node.
+     * @param _node The specified node. Not in use.
      * @return address of the resolver.
      */
     function resolver(bytes32 _node) external view returns (address) {
-        return records[_node].resolver;
+        return activeResolver;
     }
 
     /**

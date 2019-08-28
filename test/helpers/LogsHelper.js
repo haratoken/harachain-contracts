@@ -266,3 +266,59 @@ module.exports.HaraTokenPrivate = {
         "type": "uint256"
     }]
 }
+
+module.exports.ContractMadeAbstract = {
+    HasGetClassTopic: "0x5e80a0839b78e29f73bb490669c9b8b77e190751a8f9569fd6a42f3a16e97a91",
+    HasGetClassAbi: []
+}
+
+module.exports.DataStore = {
+    SignatureLogTopic: "0xbb9f6a2766f43575abb11a054ffdb9a40439ea63fa517fe2cc3e8e145fc5f36b",
+    SignatureLogAbi: [{
+        "indexed": true,
+        "name": "version",
+        "type": "bytes32"
+    }, {
+        "indexed": false,
+        "name": "signature",
+        "type": "bytes"
+    }]
+}
+
+module.exports.DataProviderRelation = {
+    EndpointChangedLogTopic: "0x4111b886b9600f01e3735293a06336ba02fbb0aff7eca35ddca34d429d34119c",
+    EndpointChangedLogAbi: [{
+        "indexed": false,
+        "name": "oldEndpoint",
+        "type": "string"
+    }, {
+        "indexed": false,
+        "name": "newEndpoint",
+        "type": "string"
+    }, {
+        "indexed": true,
+        "name": "by",
+        "type": "address"
+    }]    
+}
+
+module.exports.DataFactoryProvider = {
+    RelationCreatedLogTopic: "0x47940b042ea2e2b9c22b08dfff43c2558325774a7184316e7791a584e494eae3",
+    RelationCreatedLogAbi: [{
+        "indexed": true,
+        "name": "fromAddr",
+        "type": "string"
+    }, {
+        "indexed": false,
+        "name": "fromVersion",
+        "type": "string"
+    }, {
+        "indexed": true,
+        "name": "toAddr",
+        "type": "string"
+    }, {
+        "indexed": false,
+        "name": "toVersion",
+        "type": "string"
+    }]
+}

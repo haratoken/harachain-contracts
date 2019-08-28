@@ -193,7 +193,7 @@ contract('DataFactoryRegistry', accounts => {
     });
 
     it('store data signature', async function () {
-      var dataSignature = await datastore1.getSignature();
+      var dataSignature = await datastore1.getSignature(web3.utils.keccak256("0"));
       assert.strictEqual(web3.utils.hexToAscii(dataSignature), initSignature);
     });
 
@@ -235,7 +235,7 @@ contract('DataFactoryRegistry', accounts => {
     });
 
     it('store data signature', async function () {
-      var dataSignature = await datastore2.getSignature();
+      var dataSignature = await datastore2.getSignature(web3.utils.keccak256("0"));
       assert.strictEqual(web3.utils.hexToAscii(dataSignature), initSignature);
     });
 

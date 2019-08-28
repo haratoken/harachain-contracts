@@ -1,9 +1,7 @@
 const HNS = artifacts.require('./HNSRegistry');
 const Resolver = artifacts.require('./HaraResolver');
 
-const expectRevert = require("./helpers/expectRevert");
-const encoderDecoder = require("./helpers/encoderDecoder");
-const logsDetail = require("./helpers/LogsHelper");
+const expectRevert = require("./../helpers/expectRevert");
 
 contract('HaraResolver', accounts => {
     let hnsRegistry;
@@ -13,6 +11,7 @@ contract('HaraResolver', accounts => {
     const haraOwner = accounts[1];
     const devharaOwner = accounts[2];
     const notOwner = accounts[4];
+    const dummyRegistrar = accounts[5];
 
     const haraHash = web3.utils.sha3("hara");
     const devHash = web3.utils.sha3("dev");
@@ -26,14 +25,18 @@ contract('HaraResolver', accounts => {
             from: rootOwner
         });
 
+        await hnsRegistry.setRegistrar(dummyRegistrar, {
+            from: rootOwner
+        });
+
         // add .hara tld
         await hnsRegistry.setSubnodeOwner("0x0", haraHash, haraOwner, {
-            from: rootOwner
+            from: dummyRegistrar
         });
 
         // add dev.hara domain
         await hnsRegistry.setSubnodeOwner(haraNamehash, devHash, devharaOwner, {
-            from: haraOwner
+            from: dummyRegistrar
         });
 
         // deploy resolver

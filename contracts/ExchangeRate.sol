@@ -4,7 +4,11 @@ import "./../open-zeppelin/math/SafeMath.sol";
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./interfaces/IExchangeRate.sol";
 
-contract ExchangeRate is Ownable {
+interface SpecialPrice {
+    function getPrice(uint256 _basePrice) external view returns (uint256 finalPrice);
+}
+
+contract ExchangeRate is Ownable, SpecialPrice {
     using SafeMath for uint256;
     
     // storage

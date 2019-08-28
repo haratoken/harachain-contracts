@@ -4,7 +4,7 @@
 This repository includes all contracts that deploy on HARA private network (HARA chain).
 
 ## Contracts Definition
-
+## Interfaces
 ### [IBuyable Interface](contracts/interfaces/IBuyable.sol)
 Interface for buyable item.
 
@@ -25,6 +25,8 @@ Interface for withdrawable contract.
 
 ### [AdvancedPrice Contract](contracts/AdvancedPrice.sol)
 Contract for advanced price. Exchange rate use case. Price will change based on exchange rate.
+
+## Contracts
 
 ### [BasicMarketItem Contract](contracts/BasicMarketItem.sol)
 Basic contract for item on data exchange market.
@@ -49,3 +51,21 @@ Contract oh ERC20 HaraToken on HARA chain network.
 
 ### [Order Contract](contracts/Order.sol)
 Contract to that allow user to buy multiple data in one transaction.
+
+## Hara Name Services
+ENS for hara network.
+### [ENS Contract](contracts/ens/ENS.sol)
+Ethereum name services abstraction.
+
+### [HNS Contract](contracts/ens/HNS.sol)
+Hara Name Services Registry contract,
+
+### [HaraRegistrar Contract](contracts/ens/HaraRegistrar.sol)
+Registrar to regist new node by staking with hart.
+
+### [OwnerRegistrar Contract](contracts/ens/OwnerRegistrar.sol)
+Registrar to regist new node by owner only.
+
+### [HaraResolver](contracts/ens/HNS.sol)
+Contract to keep all resolvers of nodes. Accept address, ABI, PubKey, content, name, text.
+

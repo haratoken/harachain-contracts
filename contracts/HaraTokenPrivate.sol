@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity 0.5.2;
 
 /**
  * @title Roles
@@ -402,8 +402,6 @@ interface IBuyMechanism {
     returns (address buyer, address seller, bytes32 id, uint256 value);
 }
 
-pragma solidity ^0.5.2;
-
 
 /**
  * @title Buyable
@@ -422,8 +420,6 @@ interface IBuyable {
     // one txReceipt only for one transaction receipt
     function buy(uint256 _txReceipt) external returns (bool);
 }
-
-pragma solidity ^0.5.2;
 
 
 /**
