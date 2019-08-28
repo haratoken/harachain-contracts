@@ -14,16 +14,10 @@ contract('AttestContract', accounts => {
   let dataFactory;
   let dataFactoryRegistry;
   let hart;
-  let ap;
-  let priceAddress;
 
   const initLocation = web3.utils.toChecksumAddress("0xca35b7d915458ef540ade6068dfe2f44e8fa733c") ;
   const initSignature = "0x430dec04b9ebe807ce8fb9b0d025861c13f5e36f226c12469ff6f89fb217fa9f";
   const initSignatureFunc = "keccak";
-  const initKeyMetadata = [web3.utils.asciiToHex("size"), web3.utils.asciiToHex("filename")];
-  const initValueMetadata = [web3.utils.asciiToHex("2MB"), web3.utils.asciiToHex("ktp.jpg")];
-  const initPriceId = web3.utils.fromAscii("0");
-  const initPriceValue = web3.utils.toWei("10");
   
   const initExpiredTime = new Date("Wed, 8 May 2019 13:30:00").getTime();
   const newExpiredTime = new Date("Wed, 12 July 2025 13:30:00").getTime();
@@ -71,10 +65,6 @@ contract('AttestContract', accounts => {
       dataFactoryRegistry.address,
       { from: dataOwner } ); 
 
-      ap = await AdvancedPrice.new( 
-        datastore.address,
-        { from: dataOwner } ); 
-      priceAddress = ap.address;
   });
 
   describe('test ownable contract', async function(){
@@ -112,7 +102,7 @@ contract('AttestContract', accounts => {
 
     before(async function(){
       dataStoreContractAddress = datastore.address;
-      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic, owner, initValue, initExpiredTime, {from:owner});
+      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic, initValue, initExpiredTime, {from:owner});
       AttestResultLog = receipt.receipt.logs[0].args;
       AttestActionLog = receipt.receipt.logs[1].args;
       WhoAttestLog = receipt.receipt.logs[2].args;
@@ -126,7 +116,7 @@ contract('AttestContract', accounts => {
       assert.strictEqual(AttestActionLog.version, initVersion );
       assert.strictEqual(AttestActionLog.itemAddress , dataStoreContractAddress );
       assert.strictEqual(AttestActionLog.topic , initTopic );
-      assert.strictEqual(AttestActionLog.proxyAddress , owner );
+      assert.strictEqual(AttestActionLog.attestor , owner );
       assert.strictEqual(AttestActionLog.value , initValue );
       assert.strictEqual(parseInt(AttestActionLog.expiredTime) , initExpiredTime );
     });
@@ -136,7 +126,7 @@ contract('AttestContract', accounts => {
       assert.strictEqual(WhoAttestLog.version, initVersion );
       assert.strictEqual(WhoAttestLog.itemAddress , dataStoreContractAddress );
       assert.strictEqual(WhoAttestLog.topic , initTopic );
-      assert.strictEqual(WhoAttestLog.proxyAddress , owner );
+      assert.strictEqual(WhoAttestLog.attestor , owner );
     });
 
     it('AttestLog is working', async function(){
@@ -144,7 +134,7 @@ contract('AttestContract', accounts => {
       assert.strictEqual(AttestLog.version, initVersion );
       assert.strictEqual(AttestLog.itemAddress , dataStoreContractAddress );
       assert.strictEqual(AttestLog.topic , initTopic );
-      assert.strictEqual(AttestLog.proxyAddress , owner );
+      assert.strictEqual(AttestLog.attestor , owner );
     });
 
     it('getters are working', async function(){
@@ -161,12 +151,12 @@ contract('AttestContract', accounts => {
     let AttestResultLog;
     before(async function(){
       dataStoreContractAddress = datastore.address;
-      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic2, owner, initValue, initExpiredTime, {from:owner});
+      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic2, initValue, initExpiredTime, {from:owner});
       AttestResultLog = receipt.receipt.logs[0].args;
     });
 
     it('can overwrite value', async function(){
-      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic2, owner, newValue, initExpiredTime, {from:owner});
+      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic2, newValue, initExpiredTime, {from:owner});
       var resultValue = await attestcontract.getValue(initVersion, dataStoreContractAddress, initTopic2, owner);
       var resultExpiredTime = await attestcontract.getExpiredTime(initVersion, dataStoreContractAddress, initTopic2, owner);
       assert.strictEqual(resultValue, newValue);
@@ -185,7 +175,7 @@ contract('AttestContract', accounts => {
     });
     
     it('can overwrite expired time', async function(){
-      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic2, owner, newValue, newExpiredTime, {from:owner});
+      receipt = await attestcontract.attest(initVersion, dataStoreContractAddress, initTopic2, newValue, newExpiredTime, {from:owner});
       var resultValue = await attestcontract.getValue(initVersion, dataStoreContractAddress, initTopic2, owner);
       var resultExpiredTime = await attestcontract.getExpiredTime(initVersion, dataStoreContractAddress, initTopic2, owner);
       assert.strictEqual(resultValue, newValue);
@@ -203,4 +193,31 @@ contract('AttestContract', accounts => {
       assert.strictEqual(parseInt(AttestResultLog.newExpiredTime) , newExpiredTime );
     });
   });  
+
+  describe('EIP 780 Implementation' , async()=>{
+    let newValue2, newTopic;
+    before(async ()=>{
+      newValue2 = web3.utils.fromAscii('Data is valid').padEnd(66, '0'); 
+      newTopic = web3.utils.fromAscii('validation').padEnd(66, '0');
+      receipt = await attestcontract.setClaim(dataStoreContractAddress, newTopic, newValue2, {from:owner});
+    });
+
+    it('can getClaim', async ()=>{
+      const value = await attestcontract.getClaim(owner, dataStoreContractAddress, newTopic, {from:owner});
+      assert.strictEqual(value, newValue2);
+    });
+
+    it('revert removeClaim', async()=>{
+      await expectRevert( attestcontract.removeClaim(owner, dataStoreContractAddress, newTopic, {from: notOwner})  );
+      // expectRevert(await attestcontract.removeClaim(owner, dataStoreContractAddress, newTopic,{from: owner})  );
+    });
+
+    it('removeClaim', async ()=>{
+      await attestcontract.removeClaim( owner, dataStoreContractAddress, newTopic, {from:owner});
+      const value = await attestcontract.getClaim(owner, dataStoreContractAddress, newTopic, {from:owner});
+      assert.strictEqual(value, web3.utils.asciiToHex('').padEnd(66,'0'));
+    });
+
+  });
+
 });

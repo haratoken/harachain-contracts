@@ -7,6 +7,6 @@ pragma solidity ^0.5.2;
  */
 contract IDataProvider {
 
-    function getUri(string calldata _locationId, string calldata _priceId, string calldata _buyer) external view returns (string memory uri);
+    function getUri(string calldata _locationId, string calldata _version) external view returns (string memory uri);
 
 }

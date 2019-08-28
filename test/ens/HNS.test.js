@@ -1,8 +1,6 @@
 const HNS = artifacts.require('./HNSRegistry');
 
-const expectRevert = require("./helpers/expectRevert");
-const encoderDecoder = require("./helpers/encoderDecoder");
-const logsDetail = require("./helpers/LogsHelper");
+const expectRevert = require("./../helpers/expectRevert");
 
 contract('HNS', accounts => {
     let hnsRegistry;
@@ -67,102 +65,6 @@ contract('HNS', accounts => {
         });
     });
 
-    describe('set and change owner of subnode', async function () {
-        it('set .hara tld', async function () {
-            var ownerBefore = await hnsRegistry.owner(haraNamehash);
-            var receipt = await hnsRegistry.setSubnodeOwner("0x0", haraHash, haraOwner, {
-                from: rootOwner1
-            });
-            var ownerAfter = await hnsRegistry.owner(haraNamehash);
-            assert.strictEqual(ownerBefore, "0x0000000000000000000000000000000000000000");
-            assert.strictEqual(ownerAfter, haraOwner);
-            assert.notStrictEqual(ownerBefore, ownerAfter)
-
-            const log = receipt.receipt.logs[0];
-            assert.strictEqual(log.event, "NewOwner");
-            assert.strictEqual(log.args.node, "0x0000000000000000000000000000000000000000000000000000000000000000");
-            assert.strictEqual(log.args.label, haraHash);
-            assert.strictEqual(log.args.owner, haraOwner);
-        });
-
-        it('can not set .test tld  by not owner', async function () {
-            await expectRevert(
-                hnsRegistry.setSubnodeOwner("0x0", web3.utils.sha3("test"), notOwner, {
-                    from: notOwner
-                })
-            );
-        });
-
-        it('set dev.hara domain', async function () {
-            var ownerBefore = await hnsRegistry.owner(devharaNamehash);
-            var receipt = await hnsRegistry.setSubnodeOwner(haraNamehash, devHash, devharaOwner, {
-                from: haraOwner
-            });
-            var ownerAfter = await hnsRegistry.owner(devharaNamehash);
-            assert.strictEqual(ownerBefore, "0x0000000000000000000000000000000000000000");
-            assert.strictEqual(ownerAfter, devharaOwner);
-            assert.notStrictEqual(ownerBefore, ownerAfter)
-
-            const log = receipt.receipt.logs[0];
-            assert.strictEqual(log.event, "NewOwner");
-            assert.strictEqual(log.args.node, haraNamehash);
-            assert.strictEqual(log.args.label, devHash);
-            assert.strictEqual(log.args.owner, devharaOwner);
-        });
-    });
-
-    describe('set resolver', async function () {
-        it('can set resolver by owner', async function () {
-            var resolverBefore = await hnsRegistry.resolver(devharaNamehash);
-            var receipt = await hnsRegistry.setResolver(devharaNamehash, dummyResolver, {
-                from: devharaOwner
-            });
-            var resolverAfter = await hnsRegistry.resolver(devharaNamehash);
-            assert.strictEqual(resolverBefore, "0x0000000000000000000000000000000000000000");
-            assert.strictEqual(resolverAfter, dummyResolver);
-            assert.notStrictEqual(resolverBefore, resolverAfter)
-
-            const log = receipt.receipt.logs[0];
-            assert.strictEqual(log.event, "NewResolver");
-            assert.strictEqual(log.args.node, devharaNamehash);
-            assert.strictEqual(log.args.resolver, dummyResolver);
-        });
-
-        it('can not set resolver by not owner', async function () {
-            await expectRevert(
-                hnsRegistry.setResolver(devharaNamehash, dummyResolver, {
-                    from: notOwner
-                })
-            )
-        })
-    });
-
-    describe('set ttl', async function () {
-        it('can set ttl by owner', async function () {
-            var ttlBefore = await hnsRegistry.ttl(devharaNamehash);
-            var receipt = await hnsRegistry.setTTL(devharaNamehash, 5, {
-                from: devharaOwner
-            });
-            var ttlAfter = await hnsRegistry.ttl(devharaNamehash);
-            assert.strictEqual(ttlBefore.toString(), "0");
-            assert.strictEqual(ttlAfter.toString(), "5");
-            assert.notStrictEqual(ttlBefore, ttlAfter)
-
-            const log = receipt.receipt.logs[0];
-            assert.strictEqual(log.event, "NewTTL");
-            assert.strictEqual(log.args.node, devharaNamehash);
-            assert.strictEqual(log.args.ttl.toString(), "5");
-        });
-
-        it('can not set resolver by not owner', async function () {
-            await expectRevert(
-                hnsRegistry.setResolver(devharaNamehash, dummyResolver, {
-                    from: notOwner
-                })
-            )
-        })
-    });
-
     describe('have activeRegistrar', async function () {
         it('can set registrar by owner', async function () {
             var registrarBefore = await hnsRegistry.activeRegistrar();
@@ -188,7 +90,7 @@ contract('HNS', accounts => {
             )
         });
 
-        it('can set new subnode by registrar if registrar is set', async function () {
+        it('can set new subnode by registrar', async function () {
             var ownerBefore = await hnsRegistry.owner("0xc228250cd567687ff7faee5c63fb721b525b63beaba08a87df1eeaea0120f79d");
             var receipt = await hnsRegistry.setSubnodeOwner(devharaNamehash, "0x8c9e37c3d5f4d11153908eeaa7d86bcdf59b3478f4b3854a0ac463b58b1110d9",
             devharaOwner, {
@@ -214,5 +116,101 @@ contract('HNS', accounts => {
                 })
             )
         });
+    });
+
+    describe('set and change owner of subnode', async function () {
+        it('set .hara tld', async function () {
+            var ownerBefore = await hnsRegistry.owner(haraNamehash);
+            var receipt = await hnsRegistry.setSubnodeOwner("0x0", haraHash, haraOwner, {
+                from: dummyRegistrar
+            });
+            var ownerAfter = await hnsRegistry.owner(haraNamehash);
+            assert.strictEqual(ownerBefore, "0x0000000000000000000000000000000000000000");
+            assert.strictEqual(ownerAfter, haraOwner);
+            assert.notStrictEqual(ownerBefore, ownerAfter)
+
+            const log = receipt.receipt.logs[0];
+            assert.strictEqual(log.event, "NewOwner");
+            assert.strictEqual(log.args.node, "0x0000000000000000000000000000000000000000000000000000000000000000");
+            assert.strictEqual(log.args.label, haraHash);
+            assert.strictEqual(log.args.owner, haraOwner);
+        });
+
+        it('can not set .test tld  by not owner', async function () {
+            await expectRevert(
+                hnsRegistry.setSubnodeOwner("0x0", web3.utils.sha3("test"), notOwner, {
+                    from: notOwner
+                })
+            );
+        });
+
+        it('set dev.hara domain', async function () {
+            var ownerBefore = await hnsRegistry.owner(devharaNamehash);
+            var receipt = await hnsRegistry.setSubnodeOwner(haraNamehash, devHash, devharaOwner, {
+                from: dummyRegistrar
+            });
+            var ownerAfter = await hnsRegistry.owner(devharaNamehash);
+            assert.strictEqual(ownerBefore, "0x0000000000000000000000000000000000000000");
+            assert.strictEqual(ownerAfter, devharaOwner);
+            assert.notStrictEqual(ownerBefore, ownerAfter)
+
+            const log = receipt.receipt.logs[0];
+            assert.strictEqual(log.event, "NewOwner");
+            assert.strictEqual(log.args.node, haraNamehash);
+            assert.strictEqual(log.args.label, devHash);
+            assert.strictEqual(log.args.owner, devharaOwner);
+        });
+    });
+
+    describe('set resolver', async function () {
+        it('can set resolver only by root owner', async function () {
+            var resolverBefore = await hnsRegistry.resolver(devharaNamehash);
+            var receipt = await hnsRegistry.setResolver("0x00", dummyResolver, {
+                from: rootOwner1
+            });
+            var resolverAfter = await hnsRegistry.resolver(devharaNamehash);
+            assert.strictEqual(resolverBefore, "0x0000000000000000000000000000000000000000");
+            assert.strictEqual(resolverAfter, dummyResolver);
+            assert.notStrictEqual(resolverBefore, resolverAfter)
+
+            const log = receipt.receipt.logs[0];
+            assert.strictEqual(log.event, "NewResolver");
+            assert.strictEqual(log.args.node, "0x0000000000000000000000000000000000000000000000000000000000000000");
+            assert.strictEqual(log.args.resolver, dummyResolver);
+        });
+
+        it('can not set resolver by not root owner', async function () {
+            await expectRevert(
+                hnsRegistry.setResolver(devharaNamehash, dummyResolver, {
+                    from: notOwner
+                })
+            )
+        })
+    });
+
+    describe('set ttl', async function () {
+        it('can set ttl by owner', async function () {
+            var ttlBefore = await hnsRegistry.ttl(devharaNamehash);
+            var receipt = await hnsRegistry.setTTL(devharaNamehash, 5, {
+                from: devharaOwner
+            });
+            var ttlAfter = await hnsRegistry.ttl(devharaNamehash);
+            assert.strictEqual(ttlBefore.toString(), "0");
+            assert.strictEqual(ttlAfter.toString(), "5");
+            assert.notStrictEqual(ttlBefore, ttlAfter)
+
+            const log = receipt.receipt.logs[0];
+            assert.strictEqual(log.event, "NewTTL");
+            assert.strictEqual(log.args.node, devharaNamehash);
+            assert.strictEqual(log.args.ttl.toString(), "5");
+        });
+
+        it('can not set ttl by not owner', async function () {
+            await expectRevert(
+                hnsRegistry.setTTL(devharaNamehash, 5, {
+                    from: notOwner
+                })
+            )
+        })
     });
 });

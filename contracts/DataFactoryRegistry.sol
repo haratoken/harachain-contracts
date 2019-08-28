@@ -1,4 +1,4 @@
-pragma solidity ^0.5.2;
+pragma solidity 0.5.2;
 
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./interfaces/IDataFactory.sol";
@@ -39,10 +39,10 @@ contract DataFactoryRegistry is Ownable {
     /**
     * @dev Constructor keep contract owner.
     */
-    constructor(address _dataFactoryAddress)
+    constructor(IDataFactory _dataFactoryAddress)
     public {
         haraAddress = msg.sender;
-        dataFactory = IDataFactory(_dataFactoryAddress);
+        dataFactory = _dataFactoryAddress;
         haraPercentage = 15;
         emit PercentageChanged(0, 0, haraPercentage);
         dataProviderPercentage = 5;

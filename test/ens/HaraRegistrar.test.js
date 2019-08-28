@@ -2,9 +2,7 @@ const HNS = artifacts.require('./HNSRegistry');
 const Registrar = artifacts.require('./HaraRegistrar');
 const HaraToken = artifacts.require('./HaraTokenPrivate');
 
-const expectRevert = require("./helpers/expectRevert");
-const encoderDecoder = require("./helpers/encoderDecoder");
-const logsDetail = require("./helpers/LogsHelper");
+const expectRevert = require("./../helpers/expectRevert");
 
 contract('HaraRegistrar', accounts => {
     let hart;
@@ -17,6 +15,7 @@ contract('HaraRegistrar', accounts => {
     const registrarOwner = accounts[3];
     const blockchaindevharaOwner = accounts[4];
     const agentdevharaOwner = accounts[5];
+    const dummyRegistrar = accounts[6];
 
     const haraHash = web3.utils.sha3("hara");
     const devHash = web3.utils.sha3("dev");
@@ -45,19 +44,24 @@ contract('HaraRegistrar', accounts => {
             {
             from: registrarOwner
         });
+
+        await hnsRegistry.setRegistrar(dummyRegistrar, {
+            from: rootOwner
+        });
+
         // add .hara tld
         await hnsRegistry.setSubnodeOwner("0x0", haraHash, haraOwner, {
-            from: rootOwner
+            from: dummyRegistrar
         });
 
         // add dev.hara domain
         await hnsRegistry.setSubnodeOwner(haraNamehash, devHash, devharaOwner, {
-            from: haraOwner
+            from: dummyRegistrar
         });
 
         // add agent.dev.hara domain
         await hnsRegistry.setSubnodeOwner(devharaNamehash, agentHash, agentdevharaOwner, {
-            from: devharaOwner
+            from: dummyRegistrar
         });
     });
 

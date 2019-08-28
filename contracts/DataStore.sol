@@ -1,7 +1,8 @@
-pragma solidity ^0.5.2;
+pragma solidity 0.5.2;
 
 import "./../open-zeppelin/ownership/Ownable.sol";
 import "./DataFactoryRegistry.sol";
+import "./interfaces/ContractMadeAbstract.sol";
 
 
 /**
@@ -9,21 +10,23 @@ import "./DataFactoryRegistry.sol";
  * @dev contract that store all data information.
  */
 
-contract DataStore is Ownable {    
+contract DataStore is Ownable, ContractMadeAbstract("datastore.class") {    
 
     mapping(address=>mapping(bytes32=>bool)) private purchaseStatus;
-    bytes private signature;
+    mapping(bytes32=>bytes) private signature;
     bytes private signatureFunc; 
     address private location; 
     mapping(bytes32=>bytes32) public metadata;
     DataFactoryRegistry public dataFactory;
+    address public editor;
     
     
     // events
     event DataLog(address indexed owner, address location, bytes signature, bytes signatureFunc);
     event DataUpdateLog(string indexed dataType, bool dataValid);
     event MetadataLog(bytes32 indexed keyMetadata, bytes32 valueMetadata);
-    // event DexAddressChanged(address newDexAddress, address by);
+    event SignatureLog(bytes32 indexed version, bytes signature);
+    event EditorChangedLog(address indexed oldEditor, address indexed newEditor, address by);
 
     //modifiers
     /**
@@ -46,6 +49,14 @@ contract DataStore is Ownable {
     }
 
     /**
+    * @dev Modifier to check if function called by Dex contract address.
+    */
+    modifier onlyEditorOrOwner() {
+        require(msg.sender == editor || msg.sender == owner(), "Can only accesed by Editor or Owner.");
+        _;
+    }
+
+    /**
     * @dev Constructor to intial data information on contract.
     * @param _owner Data owner.
     * @param _location Location of data.
@@ -61,12 +72,27 @@ contract DataStore is Ownable {
         address _dfRegistryAddress
         )    
     public {
-        signature = _signature;
+        setSignature(keccak256("0"), _signature);
         signatureFunc = _signatureFunc;
         location = _location;
         emit DataLog(_owner, _location, _signature, _signatureFunc);
         dataFactory = DataFactoryRegistry(_dfRegistryAddress);
         transferOwnership(_owner);
+    }
+
+    /**
+    * @dev Function to Set editor.
+    * @param _editorAddress New Editor Address.
+    */
+    function setEditor(
+        address _editorAddress
+        ) 
+        external
+        onlyOwner
+        {
+        address _oldEditor = editor;
+        editor = _editorAddress;
+        emit EditorChangedLog(_oldEditor, editor, msg.sender);
     }
 
     /**
@@ -171,14 +197,31 @@ contract DataStore is Ownable {
 
     /**
     * @dev Function to get signature of data.
+    * @param _version Version of data.
+    * @param _signature Signature of version.
     * @return Bytes of data signature.
     * 
     */
-    function getSignature() 
+    function setSignature(bytes32 _version, bytes memory _signature) 
+    public 
+    onlyEditorOrOwner
+    returns(bool status) {
+        signature[_version] = _signature;
+        emit SignatureLog(_version, signature[_version]);
+        return true;
+    }
+
+    /**
+    * @dev Function to get signature of data.
+    * @param _version Version of data.
+    * @return Bytes of data signature.
+    * 
+    */
+    function getSignature(bytes32 _version) 
     external
     view 
     returns(bytes memory) {
-        return signature;
+        return signature[_version];
     }
 
     /**
